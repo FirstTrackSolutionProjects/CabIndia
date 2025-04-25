@@ -5,7 +5,7 @@ const SubFooter = () => {
       <div className="flex sm:w-96 w-full h-16 py-3 justify-evenly m-auto">
         <img src="social/facebook.png" alt="" />
         <img src="social/instagram.png" alt="" />
-        <img src="social/linkedin.png" alt="" />
+       
         <img src="social/twitter.png" alt="" />
         <img src="social/whatsapp.png" alt="" />
       </div>
