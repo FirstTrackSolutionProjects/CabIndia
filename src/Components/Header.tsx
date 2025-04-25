@@ -7,7 +7,7 @@ import Register from "./Register";
 interface IHeaderProps {
   width: string;
   active: string;
-  isLoggedIn: Boolean;
+ 
 }
 
 interface INavItemProps {
@@ -49,7 +49,7 @@ export const NavItem : FC<INavItemProps> = ({index, item, active, toggleMenu}) =
   )
 }
 
-const Header : FC<IHeaderProps> = ({width, active, isLoggedIn }) => {
+const Header : FC<IHeaderProps> = ({width, active  }) => {
   const [isProfileMenu, setIsProfileMenu] = useState(false)
   const toggleProfile = () => {
     setIsProfileMenu(!isProfileMenu)
@@ -83,7 +83,7 @@ const Header : FC<IHeaderProps> = ({width, active, isLoggedIn }) => {
           </div>
         </div>
         {
-          isLoggedIn && (
+          true && (
             <div className=" w-[150px] h-16 md:flex hidden justify-center items-center ml-12" onClick={toggleProfile}>
             <div className="h-16 flex items-center justify-center mr-3">
               UserName
