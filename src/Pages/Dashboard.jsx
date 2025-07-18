@@ -1,5 +1,5 @@
 // import { useEffect } from 'react';
-import Booking from '../Components/Booking'
+import Booking from '../Components/BookingForm'
 // import { useNavigate } from 'react-router-dom'
 
 const Dashboard = () => {
