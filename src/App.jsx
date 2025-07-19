@@ -1,53 +1,26 @@
-// import Index from "./Pages/Index";
-// import { Routes, Route } from "react-router-dom";
-// import AboutUs from "./Pages/AboutUs";
-// import Dashboard from "./Pages/Dashboard";
-// import Career from "./Pages/Career";
-// import ContactUs from "./Pages/ContactUs";
-// import CabServices from "./Pages/CabServices";
-// import RiderDash from "./Pages/RiderDash";
-// import Header from "./Components/Header";
-// import Footer from "./Components/Footer";
-
-
-// const App = () => {
-//   return (
-//     <>
-//       <Header width='full' active="Home" />
-//       <Routes>
-       
-       
-//         <Route index element={<Index/>} />
-//         <Route path="/blog" element={<AboutUs/>} />
-//         <Route path="/dashboard" element={<Dashboard />} />
-//         <Route path="/career" element={<Career/>} />
-//         <Route path="/contact" element={<ContactUs/>} />
-//         <Route path="/cabs" element={<CabServices/>} />
-//         <Route path="/RiderDash" element={<RiderDash/>} />
-//         <Route path="*" element={<AboutUs/>} />
-//       </Routes>
-//       <Footer />
-//     </>
-//   );
-// };
-
-// export default App;
-
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Welcome from "./Components/Welcome";
 import Header from "./Components/Header";
 import SideBar from "./Components/SideBar";
 import Footer from "./Components/Footer";
-import BookRide from "./Pages/BookRide";
-import CaptainJoin from "./Pages/CaptainJoin";
+
+
 import Login from "./Pages/Login";
-import Register from "./Pages/Register";
-import UserDashboard from "./Pages/UserDashboard";
-import CaptainDashboard from "./Pages/CaptainDashboard";
+import CustomerRegister from "./Pages/CustomerRegister";
+
+
 import AboutUs from "./Pages/AboutUs";
+import JoinCaptainForm from "./Pages/JoinCaptainForm";
 import ContactUs from "./Pages/ContactUs";
 import FareDetails from "./Pages/FareDetails";
+import FAQ from "./Pages/FAQ";
+import Terms from "./Pages/Terms";
+import Cancel from "./Pages/Cancel";
+import Privacy from "./Pages/Privacy";
+import Safety from "./Pages/Safety";
+import Career from "./Pages/Career";
+import Blog from "./Pages/Blog";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -59,15 +32,24 @@ function App() {
       
       <Routes>
         <Route path="/" element={<Welcome />} />
-        <Route path="/book" element={<BookRide />} />
-        <Route path="/captain" element={<CaptainJoin />} />
+      
          <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} /> 
-        <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/captain-dashboard" element={<CaptainDashboard />} />
-        <Route path="/about" element={<AboutUs />} />
+         <Route path="/register/customer" element={<CustomerRegister />} />
+        <Route path="/register/join-captain-form" element={<JoinCaptainForm />} />
+       
+      
+        <Route path="/aboutus" element={<AboutUs />} />
+        <Route path="/join-captain-form" element={<JoinCaptainForm/>} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/fare" element={<FareDetails />} />
+        <Route path="/faq" element={<FAQ/>} />
+        <Route path="/terms" element={<Terms/>} />
+        <Route path="/cancel" element={<Cancel/>} />
+        <Route path="/privacy" element={<Privacy/>} />
+        <Route path="/safety" element={<Safety/>} />
+        <Route path="/career" element={<Career/>} />
+        <Route path="/blog" element={<Blog/>} />
+
       </Routes>
 
       <Footer />

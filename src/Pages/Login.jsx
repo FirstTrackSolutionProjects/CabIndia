@@ -63,9 +63,13 @@ const Login = () => {
         {/* Register Link */}
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Register here
-          </Link>
+          <Link
+          to={activeTab === "rider" ? "/register/join-captain-form" : `/register/${activeTab}`}
+          className="text-blue-600 hover:underline"
+        >
+          Register here
+        </Link>
+
         </p>
       </div>
     </div>

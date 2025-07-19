@@ -1,26 +1,42 @@
+import React, { useEffect, useRef, useState } from "react";
 
+const LeftAboutUs = () => {
+  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef(null);
 
-// const LeftAboutUs = () => {
-//   return (
-//     <div className="w-full bg-gray-900 text-white flex justify-end px-6"> 
-//       <div className="flex w-full md:flex-row flex-col justify-center items-center">
-//       <div className="relative flex justify-center h-inherit md:w-1/3 md:px-0 w-full px-4">
-//         <img src="logo.png" alt="" />
-//       </div>
-//         <div className="relative  h-inherit md:w-2/3 w-full  md:p-20 px-2 pb-10">
-//         <div className="text-3xl font-bold">WHO ARE WE?</div>
-//         <div className="md:mt-8 mt-3">
-//             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Voluptas facilis maxime, atque iure deleniti maiores, nihil aliquam dicta molestias praesentium esse eaque, veritatis blanditiis eos libero excepturi hic beatae a!
-//             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Voluptas facilis maxime, atque iure deleniti maiores, nihil aliquam dicta molestias praesentium esse eaque, veritatis blanditiis eos libero excepturi hic beatae a!
-//             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Voluptas facilis maxime, atque iure deleniti maiores, nihil aliquam dicta molestias praesentium esse eaque, veritatis blanditiis eos libero excepturi hic beatae a!
-//             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Voluptas facilis maxime, atque iure deleniti maiores, nihil aliquam dicta molestias praesentium esse eaque, veritatis blanditiis eos libero excepturi hic beatae a!
-//             Lorem ipsum, dolor sit amet consectetur adipisicing elit. Voluptas facilis maxime, atque iure deleniti maiores, nihil aliquam dicta molestias praesentium esse eaque, veritatis blanditiis eos libero excepturi hic beatae a!
-//         </div>
-//         </div>
-        
-//       </div>
-//     </div>
-//   )
-// }
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0.3 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
 
-// export default LeftAboutUs
+  return (
+    <div
+      ref={sectionRef}
+      className={`flex flex-col md:flex-row items-center bg-white py-12 px-6 md:px-16 transition-all duration-700 ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
+    >
+      <div className="md:w-1/2 mb-6 md:mb-0">
+        <img
+          src="/images/about-ride.jpg"
+          alt="About Ride"
+          className="rounded-xl shadow-xl w-full h-auto"
+        />
+      </div>
+      <div className="md:w-1/2 md:pl-10 text-center md:text-left">
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">About FastRide</h2>
+        <p className="text-gray-600 leading-relaxed text-lg">
+          FastRide is your trusted everyday mobility partner. We help you reach your destination
+          faster and cheaper. With real-time tracking, reliable riders, and safety-first service,
+          we’ve become the city’s favorite way to move.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default LeftAboutUs;

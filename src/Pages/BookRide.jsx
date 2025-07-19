@@ -1,12 +1,12 @@
-import React from "react";
-import BookingForm from "../Components/BookingForm";
+// import React from "react";
+// import BookingForm from "../Components/BookingForm";
 
-const BookRide = () => {
-  return (
-    <div className="p-6">
-      <BookingForm />
-    </div>
-  );
-};
+// const BookRide = () => {
+//   return (
+//     <div className="p-6">
+//       <BookingForm />
+//     </div>
+//   );
+// };
 
-export default BookRide;
+// export default BookRide;

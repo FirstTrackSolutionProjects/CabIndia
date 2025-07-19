@@ -1,10 +1,12 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import { useState } from 'react';
 
 const FareDetails = () => {
   const location = useLocation();
   const { source, destination } = location.state || {};
 
+    const [selectedPayment, setSelectedPayment] = useState("Cash");
   // Dummy logic: price per km
   const rideTypes = [
     { type: "Bike", icon: "🏍️", pricePerKm: 7 },
@@ -49,8 +51,27 @@ const FareDetails = () => {
         })}
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
-        <span>💳 Cash</span>
+       {/* Payment Mode */}
+      <div className="mt-6">
+        <h3 className="font-medium mb-2">Select Payment Method</h3>
+        <div className="flex gap-4">
+          {["Cash", "Online"].map((method) => (
+            <button
+              key={method}
+              onClick={() => setSelectedPayment(method)}
+              className={`py-2 px-4 rounded border font-semibold transition ${
+                selectedPayment === method
+                  ? "bg-yellow-500 text-white border-yellow-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:border-yellow-500"
+              }`}
+            >
+              {method}
+            </button>
+          ))}
+        </div>
+      </div>
+        
+          <div className="mt-6 flex justify-end">
         <button className="bg-yellow-500 text-white py-2 px-4 rounded font-semibold hover:bg-yellow-600">
           Continue Booking
         </button>

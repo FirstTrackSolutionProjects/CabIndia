@@ -1,12 +1,12 @@
-import RiderMain from "../Components/RiderMain"
+// import RiderMain from "../Components/RiderMain"
 
 
-const RiderDash = () => {
-  return (
-    <>
-        <RiderMain />
-    </>
-  )
-}
+// const RiderDash = () => {
+//   return (
+//     <>
+//         <RiderMain />
+//     </>
+//   )
+// }
 
-export default RiderDash
+// export default RiderDash
