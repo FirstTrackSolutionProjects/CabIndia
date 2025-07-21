@@ -26,7 +26,7 @@ const Footer = () => {
                 <Link to="/contact">Contact Us</Link>
                 <Link to="/FAQ">FAQ</Link>
                 <Link to="/terms">Terms & Conditions</Link>
-                <Link to="/career">Work with Us</Link>
+                {/* <Link to="/career">Work with Us</Link> */}
                 <Link to="/cancel">Cancellation & Refund Policy</Link>
                 <Link to="/privacy">Privacy Policy</Link>
                 <Link to="/safety">Safety</Link>

@@ -164,7 +164,7 @@ const navItems = [
     ],
   },
   { name: "Blog", link: "/blog" },
-  { name: "Career", link: "/career" },
+  // { name: "Career", link: "/career" },
   { name: "Contact Us", link: "/contact" },
 ];
 

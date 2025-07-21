@@ -1,5 +1,6 @@
-import React from "react";
-import { Routes, Route } from "react-router-dom";
+import React  from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+
 import Welcome from "./Components/Welcome";
 import Header from "./Components/Header";
 import SideBar from "./Components/SideBar";
@@ -19,11 +20,17 @@ import Terms from "./Pages/Terms";
 import Cancel from "./Pages/Cancel";
 import Privacy from "./Pages/Privacy";
 import Safety from "./Pages/Safety";
-import Career from "./Pages/Career";
+// import Career from "./Pages/Career";
 import Blog from "./Pages/Blog";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+    const location = useLocation();
+
+     // Define routes where footer should not be shown
+  const hideFooterRoutes = ["/fare"];
+
+  const shouldHideFooter = hideFooterRoutes.includes(location.pathname.toLowerCase());
 
   return (
     <>
@@ -47,12 +54,12 @@ function App() {
         <Route path="/cancel" element={<Cancel/>} />
         <Route path="/privacy" element={<Privacy/>} />
         <Route path="/safety" element={<Safety/>} />
-        <Route path="/career" element={<Career/>} />
+        {/* <Route path="/career" element={<Career/>} /> */}
         <Route path="/blog" element={<Blog/>} />
 
       </Routes>
 
-      <Footer />
+         {!shouldHideFooter && <Footer />}
     </>
   );
 }
