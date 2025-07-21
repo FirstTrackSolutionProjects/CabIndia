@@ -34,7 +34,7 @@ const SideBar = ({ isOpen, closeSidebar }) => {
           <Link to="/login" onClick={closeSidebar} className="hover:text-yellow-500">Login</Link>
           <Link to="/register" onClick={closeSidebar} className="hover:text-yellow-500">Register</Link>
           <Link to="/blog" onClick={closeSidebar} className="hover:text-yellow-500">Blog</Link>
-          <Link to="/career" onClick={closeSidebar} className="hover:text-yellow-500">Career</Link>
+          {/* <Link to="/career" onClick={closeSidebar} className="hover:text-yellow-500">Career</Link> */}
           <Link to="/contact" onClick={closeSidebar} className="hover:text-yellow-500">Contact</Link>
 
           {/* Dropdown Services */}

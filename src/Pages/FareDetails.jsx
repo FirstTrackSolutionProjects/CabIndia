@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useState } from 'react';
 
 const FareDetails = () => {
   const location = useLocation();
   const { source, destination } = location.state || {};
 
-    const [selectedPayment, setSelectedPayment] = useState("Cash");
-  // Dummy logic: price per km
+  const [selectedPayment, setSelectedPayment] = useState("Cash");
+  const [showOptions, setShowOptions] = useState(false);
+
   const rideTypes = [
     { type: "Bike", icon: "🏍️", pricePerKm: 7 },
     { type: "Auto", icon: "🛺", pricePerKm: 10 },
@@ -15,7 +15,6 @@ const FareDetails = () => {
     { type: "Cab Premium", icon: "🚖", pricePerKm: 15 },
   ];
 
-  // Fake distance function (can be replaced with real API)
   const getDistanceKm = () => {
     if (!source || !destination) return 0;
     if (source === destination) return 1;
@@ -24,8 +23,16 @@ const FareDetails = () => {
 
   const distance = getDistanceKm();
 
+  const paymentOptions = [
+    { name: "Cash", icon: "💵", description: "Pay directly to the captain" },
+    { name: "Online", icon: "💳", description: "UPI, cards or wallets" },
+  ];
+
+  const selected = paymentOptions.find(p => p.name === selectedPayment);
+
   return (
     <div className="p-6 max-w-xl mx-auto">
+      {/* From/To Details */}
       <div className="bg-gray-100 p-4 rounded-lg shadow mb-4">
         <p className="text-sm text-gray-600 font-medium">From</p>
         <p className="text-lg font-semibold">{source}</p>
@@ -34,6 +41,7 @@ const FareDetails = () => {
         <p className="text-sm mt-2 text-gray-500">Estimated Distance: <strong>{distance} km</strong></p>
       </div>
 
+      {/* Ride Type Cards */}
       <h2 className="text-xl font-semibold mb-4">Select service</h2>
       <div className="space-y-4">
         {rideTypes.map((ride, idx) => {
@@ -51,27 +59,52 @@ const FareDetails = () => {
         })}
       </div>
 
-       {/* Payment Mode */}
-      <div className="mt-6">
-        <h3 className="font-medium mb-2">Select Payment Method</h3>
-        <div className="flex gap-4">
-          {["Cash", "Online"].map((method) => (
-            <button
-              key={method}
-              onClick={() => setSelectedPayment(method)}
-              className={`py-2 px-4 rounded border font-semibold transition ${
-                selectedPayment === method
-                  ? "bg-yellow-500 text-white border-yellow-500"
-                  : "bg-white text-gray-700 border-gray-300 hover:border-yellow-500"
-              }`}
-            >
-              {method}
-            </button>
-          ))}
+      {/* Payment Method Dropdown */}
+      <div className="relative mt-6 max-w-sm">
+        <h3 className="font-medium mb-2 text-lg">Select Payment Method</h3>
+
+        {/* Selected */}
+        <div
+          className="border rounded-lg px-3 py-1 flex items-center justify-between cursor-pointer bg-white hover:shadow-md"
+          onClick={() => setShowOptions(!showOptions)}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">{selected.icon}</span>
+            <div>
+              <p className="font-semibold">{selected.name}</p>
+              <p className="text-sm text-gray-500">{selected.description}</p>
+            </div>
+          </div>
+          <span className="text-gray-500">{showOptions ? "▲" : "▼"}</span>
         </div>
+
+        {/* Options */}
+        {showOptions && (
+          <div className="absolute z-10 mt-2 w-full border rounded-lg bg-white shadow-lg">
+            {paymentOptions.map((method) => (
+              <div
+                key={method.name}
+                onClick={() => {
+                  setSelectedPayment(method.name);
+                  setShowOptions(false);
+                }}
+                className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-yellow-50 ${
+                  selectedPayment === method.name ? "bg-yellow-100" : ""
+                }`}
+              >
+                <span className="text-xl">{method.icon}</span>
+                <div>
+                  <p className="font-semibold">{method.name}</p>
+                  <p className="text-sm text-gray-500">{method.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-        
-          <div className="mt-6 flex justify-end">
+
+      {/* Continue Button */}
+      <div className="mt-6 flex justify-end">
         <button className="bg-yellow-500 text-white py-2 px-4 rounded font-semibold hover:bg-yellow-600">
           Continue Booking
         </button>
