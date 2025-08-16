@@ -15,6 +15,8 @@ import AboutUs from "./Pages/AboutUs";
 import JoinCaptainForm from "./Pages/JoinCaptainForm";
 import ContactUs from "./Pages/ContactUs";
 import FareDetails from "./Pages/FareDetails";
+import RideSearching from "./Pages/RideSearching";
+import RideConfirmed from "./Pages/RideConfirmed";
 import FAQ from "./Pages/FAQ";
 import Terms from "./Pages/Terms";
 import Cancel from "./Pages/Cancel";
@@ -49,6 +51,8 @@ function App() {
         <Route path="/join-captain-form" element={<JoinCaptainForm/>} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/fare" element={<FareDetails />} />
+        <Route path="/ride-searching" element={<RideSearching />} />
+        <Route path="/ride-confirmed" element={<RideConfirmed />} />
         <Route path="/faq" element={<FAQ/>} />
         <Route path="/terms" element={<Terms/>} />
         <Route path="/cancel" element={<Cancel/>} />
