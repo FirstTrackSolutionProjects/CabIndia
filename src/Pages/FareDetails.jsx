@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const FareDetails = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { source, destination } = location.state || {};
 
   const [selectedPayment, setSelectedPayment] = useState("Cash");
   const [showOptions, setShowOptions] = useState(false);
+  const [selectedRide, setSelectedRide] = useState(null);
 
   const rideTypes = [
     { type: "Bike", icon: "🏍️", pricePerKm: 7 },
@@ -18,7 +20,7 @@ const FareDetails = () => {
   const getDistanceKm = () => {
     if (!source || !destination) return 0;
     if (source === destination) return 1;
-    return Math.floor(Math.random() * 10) + 2; // 2-11 km fake
+    return Math.floor(Math.random() * 10) + 2; // Simulated distance between 2-11 km
   };
 
   const distance = getDistanceKm();
@@ -29,6 +31,20 @@ const FareDetails = () => {
   ];
 
   const selected = paymentOptions.find(p => p.name === selectedPayment);
+
+  const handleContinue = () => {
+    if (!selectedRide) {
+      alert("Please select a ride type first.");
+      return;
+    }
+
+    navigate("/ride-searching", {
+      state: {
+        ride: selectedRide.type,
+        icon: selectedRide.icon,
+      }
+    });
+  };
 
   return (
     <div className="p-6 max-w-xl mx-auto">
@@ -47,8 +63,15 @@ const FareDetails = () => {
         {rideTypes.map((ride, idx) => {
           const minFare = ride.pricePerKm * distance;
           const maxFare = Math.ceil(minFare * 1.2);
+          const isSelected = selectedRide?.type === ride.type;
+
           return (
-            <div key={idx} className="flex justify-between items-center p-4 border rounded cursor-pointer hover:shadow-md transition">
+            <div
+              key={idx}
+              onClick={() => setSelectedRide(ride)}
+              className={`flex justify-between items-center p-4 border rounded cursor-pointer transition 
+                ${isSelected ? 'border-yellow-500 bg-yellow-50' : 'hover:shadow-md'}`}
+            >
               <div className="flex items-center gap-3">
                 <span className="text-2xl">{ride.icon}</span>
                 <span className="font-medium">{ride.type}</span>
@@ -63,7 +86,6 @@ const FareDetails = () => {
       <div className="relative mt-6 max-w-sm">
         <h3 className="font-medium mb-2 text-lg">Select Payment Method</h3>
 
-        {/* Selected */}
         <div
           className="border rounded-lg px-3 py-1 flex items-center justify-between cursor-pointer bg-white hover:shadow-md"
           onClick={() => setShowOptions(!showOptions)}
@@ -78,7 +100,6 @@ const FareDetails = () => {
           <span className="text-gray-500">{showOptions ? "▲" : "▼"}</span>
         </div>
 
-        {/* Options */}
         {showOptions && (
           <div className="absolute z-10 mt-2 w-full border rounded-lg bg-white shadow-lg">
             {paymentOptions.map((method) => (
@@ -105,7 +126,10 @@ const FareDetails = () => {
 
       {/* Continue Button */}
       <div className="mt-6 flex justify-end">
-        <button className="bg-yellow-500 text-white py-2 px-4 rounded font-semibold hover:bg-yellow-600">
+        <button
+          onClick={handleContinue}
+          className="bg-yellow-500 text-white py-2 px-4 rounded font-semibold hover:bg-yellow-600"
+        >
           Continue Booking
         </button>
       </div>
