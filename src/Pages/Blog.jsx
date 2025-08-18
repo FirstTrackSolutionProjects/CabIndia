@@ -5,7 +5,7 @@ const blogPosts = [
     id: 1,
     title: "5 Tips to Save Money on Daily Commute",
     date: "July 15, 2025",
-    image: "/images/blog1.jpg", // Replace with your image path
+    image: "/images/blog-1.jpg", // Replace with your image path
     summary:
       "Looking to cut down travel costs? Here are 5 actionable tips to help you save money while using ride-sharing services daily.",
   },
@@ -13,7 +13,7 @@ const blogPosts = [
     id: 2,
     title: "How Technology is Changing Urban Transport",
     date: "July 10, 2025",
-    image: "/images/blog2.jpg",
+    image: "/images/blog-2.jpg",
     summary:
       "From AI to electric vehicles, discover how modern tech is transforming the way we commute in cities.",
   },
@@ -21,7 +21,7 @@ const blogPosts = [
     id: 3,
     title: "Top 3 Benefits of Using Bike Taxis",
     date: "July 3, 2025",
-    image: "/images/blog3.jpg",
+    image: "/images/blog-3.jpg",
     summary:
       "Explore the key benefits of choosing a bike taxi for short trips – it's fast, affordable, and eco-friendly!",
   },
@@ -42,7 +42,7 @@ const Blog = () => {
             <img
               src={post.image}
               alt={post.title}
-              className="w-full h-48 object-cover"
+              className="w-full h-50 object-cover"
             />
             <div className="p-4">
               <p className="text-sm text-gray-500 mb-1">{post.date}</p>

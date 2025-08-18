@@ -6,7 +6,7 @@ const Cancel = () => {
       <h1 className="text-3xl font-bold mb-6 text-black">Cancellation & Refund Policy</h1>
 
       <p className="mb-4">
-        At <strong>CabIndia</strong>, we understand that plans may change unexpectedly. To ensure a smooth and stress-free experience, we offer a transparent and customer-friendly cancellation and refund policy — for both riders and captains.
+        At <strong>CABINDIA</strong>, we understand that plans may change unexpectedly. To ensure a smooth and stress-free experience, we offer a transparent and customer-friendly cancellation and refund policy — for both riders and captains.
       </p>
 
       <h2 className="text-xl font-semibold mt-8 mb-2">For Customers (Riders)</h2>
@@ -27,7 +27,7 @@ const Cancel = () => {
 
       <h2 className="text-xl font-semibold mt-6 mb-2">General Conditions</h2>
       <ul className="list-disc list-inside space-y-2 mb-4">
-        <li><strong>CabIndia</strong> reserves the right to modify this policy at any time without prior notice.</li>
+        <li><strong>CABINDIA</strong> reserves the right to modify this policy at any time without prior notice.</li>
         <li>Disputes will be handled by our support team based on app records and trip data.</li>
         <li>Refund eligibility depends on timing, ride status, and reason for cancellation.</li>
       </ul>

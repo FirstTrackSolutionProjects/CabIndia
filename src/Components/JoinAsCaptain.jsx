@@ -38,7 +38,7 @@ const JoinAsCaptain = () => {
           <img
             src="/images/join-captain.jpg"
             alt="Join as Captain"
-            className="w-full max-w-sm rounded-xl shadow-xl"
+            className="w-full max-w-md rounded-xl shadow-xl"
           />
         </div>
       </div>
