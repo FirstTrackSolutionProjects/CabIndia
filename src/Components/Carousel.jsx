@@ -47,6 +47,7 @@
 // };
 
 // export default Carousel;
+
 import React, { useState } from 'react';
 
 const Carousel = ({ images }) => {

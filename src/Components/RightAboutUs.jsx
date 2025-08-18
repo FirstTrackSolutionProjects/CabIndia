@@ -22,7 +22,7 @@ const RightAboutUs = () => {
     >
       <div className="md:w-1/2 mb-6 md:mb-0">
         <img
-          src="/images/about-captain.jpg"
+          src="/images/chooseus.jpg"
           alt="Captain"
           className="rounded-xl shadow-xl w-full h-auto"
         />

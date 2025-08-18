@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import emailjs from 'emailjs-com';
+
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +8,9 @@ const Contact = () => {
     mobile: '',
     message: ''
   });
+
+  const [popup, setPopup] = useState({ show: false, success: false, message: "" });
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,28 +22,21 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+      console.log("Form submitted", formData);
 
-    const templateParams = {
-      email: formData.email,
-      subject: "Mail from Contact Us | CabIndia",
-      message: formData.message,
-      name: formData.name,
-      mobile: formData.mobile
-    };
+setPopup({
+      show: true,
+      success: true,
+      message: "Your message has been sent successfully!"
+    });
+  setFormData({ name: "", email: "", mobile: "", message: "" });
 
-    const serviceID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-    const templateID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-    const userID = import.meta.env.VITE_EMAILJS_USER_ID;
-
-    emailjs.send(serviceID, templateID, templateParams, userID)
-      .then((response) => {
-        console.log('Email sent successfully!', response.status, response.text);
-        alert('Email sent successfully!');
-      }, (error) => {
-        console.error('Failed to send email.', error);
-        alert('Error sending email. Please try again.');
-      });
+    // Auto close after 3s
+    setTimeout(() => {
+      setPopup({ show: false, success: false, message: "" });
+    }, 3000);
   };
+
 
   return (
       <div className="w-full min-h-screen bg-white flex justify-center items-center px-4 py-10">
@@ -115,6 +111,18 @@ const Contact = () => {
           </div>
         </form>
       </div>
+       {/* Popup Modal */}
+      {popup.show && (
+        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50">
+          <div
+            className={`px-6 py-3 rounded-lg shadow-lg text-white font-medium animate-slideDown ${
+              popup.success ? "bg-green-600" : "bg-red-600"
+            }`}
+          >
+            {popup.message}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -35,6 +35,7 @@
 // };
 
 // export default Menu;
+
 import { Hand } from "lucide-react";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -47,26 +48,35 @@ const NavItem = ({ index, item, active, toggleMenu }) => {
     setIsDropdown(!isDropdown);
   };
 
-  return (
-    <div className="relative hover:text-yellow-400" onClick={item.dropdown ? toggleDropdown : () => {}}>
-      <Link key={index} to={item.dropdown ? "#" : item.link}>
-        <p className={active === item.name ? "font-bold" : ""}>
-          {`${item.name}${item.dropdown ? (isDropdown ? " ▲" : " ▼") : ""}`}
-        </p>
-      </Link>
-      {isDropdown && (
-        <div className="mt-2 w-40 bg-gray-900 text-white rounded-lg shadow-lg z-50">
-          {item.dropdownOptions.map((option, idx) => (
-            <div key={idx} onClick={() => toggleMenu()} className="py-2 hover:text-yellow-400">
-              <Link to={option.link}>
-                <p>{option.name}</p>
-              </Link>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+return (
+  <div
+    className="relative hover:text-yellow-400"
+    onClick={item.dropdown ? toggleDropdown : () => {}}
+  >
+    <Link key={index} to={item.dropdown ? "#" : item.link}>
+      <p className={active === item.name ? "font-bold" : ""}>
+        {`${item.name}${item.dropdown ? (isDropdown ? " ▲" : " ▼") : ""}`}
+      </p>
+    </Link>
+
+    {isDropdown && (
+      <div className="absolute top-full left-0 mt-2 w-40 bg-gray-900 text-white rounded-lg shadow-lg z-50">
+        {item.dropdownOptions.map((option, idx) => (
+          <div
+            key={idx}
+            onClick={() => toggleMenu()}
+            className="py-2 hover:text-yellow-400"
+          >
+            <Link to={option.link}>
+              <p>{option.name}</p>
+            </Link>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 };
 
 const Menu = ({ togglePanel, isOpen, navItems }) => {
