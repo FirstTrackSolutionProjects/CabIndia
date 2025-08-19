@@ -3,19 +3,19 @@ import React from "react";
 const captains = [
   {
     name: "Ravi Kumar",
-    image: "/images/captain1.jpg",
+    image: "/images/Bavatar.png",
     city: "Hyderabad",
     tagline: "Your safety, my priority!",
   },
   {
     name: "Anjali Verma",
-    image: "/images/captain2.jpg",
+    image: "/images/Gavatar.png",
     city: "Bengaluru",
     tagline: "Fast and friendly service!",
   },
   {
     name: "Amit Singh",
-    image: "/images/captain3.jpg",
+    image: "/images/Bavatar.png",
     city: "Mumbai",
     tagline: "Always on time, every time.",
   },

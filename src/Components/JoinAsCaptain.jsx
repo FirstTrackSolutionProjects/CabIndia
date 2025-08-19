@@ -9,7 +9,7 @@ const JoinAsCaptain = () => {
   };
 
   return (
-    <section className="bg-yellow-100 py-16 px-6 md:px-20">
+    <section className="bg-yellow-100 rounded-lg shadow-md mx-4 my-8 p-8">
       <div className="flex flex-col md:flex-row items-center gap-12">
         {/* Text Section */}
         <div className="md:w-1/2">
@@ -21,13 +21,13 @@ const JoinAsCaptain = () => {
           </p>
           <ul className="list-disc list-inside text-gray-700 space-y-2 mb-6">
             <li>Flexible working hours</li>
-            <li>Weekly payouts</li>
+            <li>Real-time payouts</li>
             <li>Attractive incentives</li>
             <li>24/7 support team</li>
           </ul>
           <button
             onClick={handleJoin}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-3 rounded-lg shadow"
+            className="bg-green-500 hover:bg-yellow-600 text-white font-semibold px-6 py-3 rounded-lg shadow"
           >
             Join Now
           </button>
