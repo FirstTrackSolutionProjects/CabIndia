@@ -33,8 +33,8 @@ function App() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-     // Define routes where footer should not be shown
-  const hideFooterRoutes = ["/fare"];
+ 
+  const hideFooterRoutes = ["/fare", "/"];
 
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname.toLowerCase());
 
@@ -67,8 +67,9 @@ function App() {
         <Route path="/blog" element={<Blog/>} />
 
       </Routes>
+          
 
-         {!shouldHideFooter && <Footer />}
+      {!shouldHideFooter && <Footer />}
     </>
   );
 }

@@ -1,12 +1,31 @@
 import { Link } from "react-router-dom";
-import SubFooter from "./SubFooter";
 
 const Footer = () => {
+
+
+
   return (
     <>
-      <SubFooter />
+            {/* SubFooter Section */}
+      <div className="w-full p-4 bg-gray-800">
+        <div className="text-white text-center">Let's connect:-</div>
+        <div className="flex sm:w-96 w-full h-16 py-3 justify-evenly m-auto">
+          <img src="social/facebook.png" alt="facebook" />
+          <img src="social/instagram.png" alt="instagram" />
+          <img src="social/twitter.png" alt="twitter" />
+          <img src="social/whatsapp.png" alt="whatsapp" />
+        </div>
+        <div className="text-white text-center">We are located at:-</div>
+        <div className="text-white text-center">
+          CabIndia , BMC Bhawani Mall , Saheed Nagar Bhubaneswar , Odisha - 751007
+        </div>
+      </div>
 
-      <div className="w-full bg-gray-950 text-white flex flex-col items-center">
+          {/* Main Footer */}
+      <footer
+        className="w-full bg-gray-950 text-white flex-col items-center"
+      >
+        
         {/* Main Footer Content */}
         <div className="flex md:flex-row flex-col w-full items-center">
           {/* Left Section: Logo */}
@@ -50,7 +69,7 @@ const Footer = () => {
         <div className="mt-6 text-l bg-black text-center">
           Copyright &copy; 2025, Developed by CabIndia
         </div>
-      </div>
+      </footer>
     </>
   );
 };
