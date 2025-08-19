@@ -12,7 +12,7 @@ const NavItem = ({ index, item, active, toggleMenu }) => {
 
 return (
   <div
-    className="relative hover:text-yellow-400"
+    className="relative inline-block hover:text-yellow-400"
     onClick={item.dropdown ? toggleDropdown : () => {}}
   >
     <Link key={index} to={item.dropdown ? "#" : item.link}>
@@ -22,7 +22,7 @@ return (
     </Link>
 
     {isDropdown && (
-      <div className="absolute top-full left-0 mt-2 w-40 bg-gray-900 text-white rounded-lg shadow-lg z-50">
+      <div className="relative top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-900 text-white rounded-lg shadow-lg z-50">
         {item.dropdownOptions.map((option, idx) => (
           <div
             key={idx}

@@ -2,9 +2,7 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
 
-
-
-  return (
+return (
     <>
             {/* SubFooter Section */}
       <div className="w-full p-4 bg-gray-800">

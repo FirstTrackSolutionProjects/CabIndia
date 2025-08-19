@@ -20,7 +20,9 @@ const navItems = [
     ],
   },
   { name: "Blog", link: "/blog" },
+  { name : "Rider", link: "/rider"},
   // { name: "Career", link: "/career" },
+  { name: "About Us", link: "/about" },
   { name: "Contact Us", link: "/contact" },
 ];
 
@@ -35,7 +37,7 @@ const NavItem = ({ index, item, active, toggleMenu }) => {
   };
 
   return (
-    <div className="relative hover:text-yellow-400" onClick={toggleDropdown}>
+    <div className="relative inline-block hover:text-yellow-400" onClick={toggleDropdown}>
       <Link to={item.dropdown ? "#" : item.link}>
         <p className={active === item.name ? "font-bold" : ""}>
           {item.name}
@@ -44,7 +46,7 @@ const NavItem = ({ index, item, active, toggleMenu }) => {
       </Link>
 
       {isDropdown && item.dropdown && (
-        <div className="absolute top-full left-0 mt-2 w-48 p-4 bg-gray-800 text-white z-50">
+        <div className="relative top-full left-1/2 -translate-x-1/2 mt-2 w-48 p- bg-gray-900 text-white z-50 rounded-lg shadow-lg">
           {item.dropdownOptions.map((option, idx) => (
             <div
               key={idx}
@@ -96,7 +98,7 @@ const Header = ({ width, active }) => {
               </Link>
 
               {/* Desktop NavItems */}
-              <div className="md:flex justify-between w-96 ml-16 hidden">
+              <div className="md:flex justify-between w-96 ml-16 hidden relative z-30">
                 {navItems.map((item, index) => (
                   <NavItem
                     key={index}

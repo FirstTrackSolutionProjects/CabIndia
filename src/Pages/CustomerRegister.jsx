@@ -28,25 +28,33 @@ const CustomerRegister = () => {
             className="w-full mb-4 px-4 py-2 border rounded"
             required
           />
+           <div className="flex space-x-2">
+              <div className="flex items-center border border-gray-300 rounded-md px-3 py-2 bg-white">
+                <span className="text-xl mr-2">🇮🇳</span>
+                <span className="text-gray-800">+91</span>
+              </div>
+            
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                className="w-5/6 border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            
           <input
             type="password"
-            placeholder="Password"
-            className="w-full mb-4 px-4 py-2 border rounded"
+            placeholder="Create Password"
+            className="w-full mb-4 px-4 py-2 border rounded mt-4"
             required
           />
           <input
-            type="text"
-            placeholder="Address"
+            type="password"
+            placeholder="Confirm Password"
             className="w-full mb-4 px-4 py-2 border rounded"
             required
           />
-          <input
-            type="tel"
-            placeholder="Phone Number"
-            className="w-full mb-6 px-4 py-2 border rounded"
-            required
-          />
-
+          
+          
           <button
             type="submit"
             className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded"

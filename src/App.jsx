@@ -8,6 +8,7 @@ import Footer from "./Components/Footer";
 
 
 import Login from "./Pages/Login";
+import RiderLogin from "./Pages/RiderLogin";
 import CustomerRegister from "./Pages/CustomerRegister";
 
 
@@ -48,11 +49,12 @@ function App() {
         <Route path="/" element={<Welcome />} />
       
          <Route path="/login" element={<Login />} />
+        <Route path="/rider" element={<RiderLogin />} />
          <Route path="/register/customer" element={<CustomerRegister />} />
         <Route path="/register/join-captain-form" element={<JoinCaptainForm />} />
        
       
-        <Route path="/aboutus" element={<AboutUs />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/join-captain-form" element={<JoinCaptainForm/>} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/fare" element={<FareDetails />} />
