@@ -21,7 +21,7 @@ const navItems = [
   },
   { name: "Blog", link: "/blog" },
   // { name: "Career", link: "/career" },
-  // { name: "Contact Us", link: "/contact" },
+  { name: "Contact Us", link: "/contact" },
 ];
 
 // Navigation Item

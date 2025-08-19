@@ -1,5 +1,5 @@
 import Carousel from '../Components/Carousel'
-import Footer from '../Components/Footer'
+
  import LeftAboutUs from '../Components/LeftAboutUs'
  import RightAboutUs from '../Components/RightAboutUs'
 import MeetOurCaptains from '../Components/MeetOurCaptain'
@@ -8,7 +8,7 @@ import JoinAsCaptain from '../Components/JoinAsCaptain'
 const AboutUs = () => {
   return (
    <>
-    <Carousel images={['logo.png', 'welcome.jpg']} />
+    <Carousel images={['logo.png', 'welcome.jpg', 'bike.png']} />
     <LeftAboutUs />
     <RightAboutUs />
     <MeetOurCaptains/>
