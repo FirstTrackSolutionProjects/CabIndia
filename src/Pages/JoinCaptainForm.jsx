@@ -80,6 +80,7 @@ const JoinCaptainForm = () => {
 
           <input
             type="date"
+            placeholder="dd-mm-yyyy"
             required
             className="w-full px-4 py-2 border rounded-md"
           />

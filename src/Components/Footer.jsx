@@ -8,10 +8,10 @@ return (
       <div className="w-full p-4 bg-gray-800">
         <div className="text-white text-center">Let's connect:-</div>
         <div className="flex sm:w-96 w-full h-16 py-3 justify-evenly m-auto">
-          <img src="social/facebook.png" alt="facebook" />
-          <img src="social/instagram.png" alt="instagram" />
-          <img src="social/twitter.png" alt="twitter" />
-          <img src="social/whatsapp.png" alt="whatsapp" />
+          <img src="/social/facebook.png" alt="facebook" />
+          <img src="/social/instagram.png" alt="instagram" />
+          <img src="/social/twitter.png" alt="twitter" />
+          <img src="/social/whatsapp.png" alt="whatsapp" />
         </div>
         <div className="text-white text-center">We are located at:-</div>
         <div className="text-white text-center">
@@ -29,7 +29,7 @@ return (
           {/* Left Section: Logo */}
           <div className="flex sm:flex-row flex-col md:w-2/3 w-full items-center justify-center">
             <div className="flex justify-center items-center md:w-1/2 w-full p-6 flex-col">
-              <img src="logo.png" alt="Logo" className="lg:h-40 h-48 sm:h-32" />
+              <img src="/logo.png" alt="Logo" className="lg:h-40 h-48 sm:h-32" />
               <div className="text-center lg:text-5xl text-3xl font-bold flex">
                 CAB<p className="text-orange-400">IN</p><p>D</p><p className="text-green-400">IA</p>
               </div>
@@ -55,8 +55,8 @@ return (
           <div className="flex flex-col md:w-1/3 w-full justify-center items-center md:p-8 p-4">
             <div className="lg:text-2xl text-xl font-bold mb-10">DOWNLOAD THE APP</div>
             <div className="md:block flex flex-col sm:flex-row md:flex-col">
-              <img src="playstore.png" className="h-16 mb-10 md:mx-0 mx-2" alt="Playstore" />
-              <img src="appstore.png" className="h-16 md:mx-0 mx-2" alt="Appstore" />
+              <img src="/playstore.png" className="h-16 mb-10 md:mx-0 mx-2" alt="Playstore" />
+              <img src="/appstore.png" className="h-16 md:mx-0 mx-2" alt="Appstore" />
             </div>
           </div>
         </div>
