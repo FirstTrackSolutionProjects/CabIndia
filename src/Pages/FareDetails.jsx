@@ -13,8 +13,8 @@ const FareDetails = () => {
   const rideTypes = [
     { type: "Bike", icon: "🏍️", pricePerKm: 7 },
     { type: "Auto", icon: "🛺", pricePerKm: 10 },
-    { type: "Cab Economy", icon: "🚕", pricePerKm: 12 },
-    { type: "Cab Premium", icon: "🚖", pricePerKm: 15 },
+    { type: "Car Economy", icon: "🚕", pricePerKm: 12 },
+    { type: "Car Premium", icon: "🚖", pricePerKm: 15 },
   ];
 
   const getDistanceKm = () => {

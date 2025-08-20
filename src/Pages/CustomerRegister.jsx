@@ -12,7 +12,16 @@ const CustomerRegister = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
+      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mt-5 mb-6">
+
+        <div>
+            <img
+            className="w-full h-60 object-cover rounded-xl mb-6"
+            src="/images/customer-register.jpg"
+            alt="Customer Register"
+            />
+        </div>
+
         <h2 className="text-xl font-bold mb-4 text-center">Register as Customer</h2>
 
         <form onSubmit={handleRegister}>

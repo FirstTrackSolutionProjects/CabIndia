@@ -5,25 +5,30 @@ import Menu from "./Menu";
 
 // Moved navItems here
 const navItems = [
-  {
-    name: "Services",
-    link: "/services",
-    dropdown: true,
-    dropdownOptions: [
-      { name: "Cabs", link: "/cabs" },
-      { name: "Food Delivery"
-        // , link: "https://dulcet-salmiakki-1848c9.netlify.app/" 
-      },
-      { name: "Parcel Delivery"
-        // , link: "/parcelDelivery" 
-      },
-    ],
-  },
+  // {
+  //   name: "Services",
+  //   link: "/services",
+  //   dropdown: true,
+  //   dropdownOptions: [
+  //     { name: "Cabs", link: "/cabs" },
+  //     { name: "Food Delivery"
+  //       // , link: "https://dulcet-salmiakki-1848c9.netlify.app/" 
+  //     },
+  //     { name: "Parcel Delivery"
+  //       // , link: "/parcelDelivery" 
+  //     },
+  //   ],
+  // },
+  { name: "Home", link: "/fare"},
   { name: "Blog", link: "/blog" },
   { name : "Rider", link: "/rider"},
   // { name: "Career", link: "/career" },
   { name: "About Us", link: "/about" },
   { name: "Contact Us", link: "/contact" },
+  { 
+    name: "Chat", 
+    link: "https://wa.me/911234567890?text=Hello%20AI%20Assistant,%20I%20want%20to%20know%20more%20about%20your%20services."
+  },
 ];
 
 // Navigation Item
@@ -36,14 +41,28 @@ const NavItem = ({ index, item, active, toggleMenu }) => {
     }
   };
 
+   const isExternal = item.link.startsWith("http") || item.link.startsWith("https");
+
   return (
     <div className="relative inline-block hover:text-yellow-400" onClick={toggleDropdown}>
+
+      {isExternal ? (
+        <a 
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`cursor-pointer ${active === item.name ? "font-bold" : ""}`}
+        >
+          {item.name}
+        </a>
+      ) : (
       <Link to={item.dropdown ? "#" : item.link}>
         <p className={active === item.name ? "font-bold" : ""}>
           {item.name}
           {item.dropdown && (isDropdown ? " ▲" : " ▼")}
         </p>
       </Link>
+      )}
 
       {isDropdown && item.dropdown && (
         <div className="relative top-full left-1/2 -translate-x-1/2 mt-2 w-48 p- bg-gray-900 text-white z-50 rounded-lg shadow-lg">

@@ -8,6 +8,15 @@ const JoinCaptainForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
      <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mt-5 mb-16">
 
+      <div>
+            <img
+            className="w-full h-60 object-cover rounded-xl mb-6"
+            src="/images/rider-register.jpg"
+            alt="Rider Register"
+            />
+        </div>
+
+
         {/* Heading */}
         <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
           Join as a Captain
@@ -193,6 +202,24 @@ const JoinCaptainForm = () => {
               className="w-full px-4 py-2 border rounded-md"
             />
           </div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-700">
+              KYC Details
+            </h3>
+          <input 
+              type="text"
+              placeholder="Aadhaar Number"
+              required
+              className="w-full px-4 py-2 border rounded-md"
+            />
+
+             <input 
+              type="text"
+              placeholder="Pan Number"
+              required
+              className="w-full px-4 py-2 border rounded-md"
+            />
+            </div>
 
           {/* Vehicle Details */}
           <div className="space-y-4">
@@ -279,19 +306,7 @@ const JoinCaptainForm = () => {
             </div>
           </div>
 
-           <input
-            type="password"
-            placeholder="Create Password"
-            className="w-full mb-4 px-4 py-2 border rounded mt-4"
-            required
-          />
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            className="w-full mb-4 px-4 py-2 border rounded"
-            required
-          />
-
+          
           {/* Uploads */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-700">Uploads</h3>
@@ -305,19 +320,19 @@ const JoinCaptainForm = () => {
             <label className="block">Vehicle Number Plate</label>
             <input type="file" required className="w-full" />
 
-            <label className="block">Aadhaar Number</label>
+            <label className="block">Aadhaar Card</label>
             <input type="file" required className="w-full" />
 
-            <label className="block">PAN Number</label>
+            <label className="block">PAN Card</label>
             <input type="file" required className="w-full" />
 
             <label className="block">Driving License</label>
             <input type="file" required className="w-full" />
 
-            <label className="block">RC</label>
+            <label className="block">RC Number</label>
             <input type="file" required className="w-full" />
 
-            <label className="block">Insurance</label>
+            <label className="block">Insurance Certificate</label>
             <input type="file" required className="w-full" />
 
             <label className="block">Pollution Certificate</label>
