@@ -19,7 +19,7 @@ const navItems = [
   //     },
   //   ],
   // },
-  { name: "Home", link: "/fare"},
+  { name: "Home", link: "/"},
   { name: "Blog", link: "/blog" },
   { name : "Rider", link: "/rider"},
   // { name: "Career", link: "/career" },
@@ -107,7 +107,7 @@ const Header = ({ width, active }) => {
             <div className="flex w-full items-center">
               {/* Logo */}
               <Link to="/" className="flex h-16 items-center">
-                <img className="w-10" src={logo} alt="Logo" />
+                <img className="w-10 flex h-16 items-center" src="/logo.png" alt="Logo" />
                 &nbsp;
                 <span className="text-md font-bold flex">
                   CAB <p className="text-orange-400">IN</p>
