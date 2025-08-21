@@ -79,12 +79,21 @@ const JoinCaptainForm = () => {
           </select>
 
           <input
-            type="date"
+            type="text"
+            onFocus={(e) => {
+              e.target.type = "date";
+              e.target.showPicker?.();   
+            }}
+            onBlur={(e) => {
+              if (!e.target.value) e.target.type = "text";
+            }}
             placeholder="dd-mm-yyyy"
             required
             className="w-full px-4 py-2 border rounded-md"
           />
 
+
+        
           {/* Address */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-700">
@@ -214,7 +223,7 @@ const JoinCaptainForm = () => {
               className="w-full px-4 py-2 border rounded-md"
             />
 
-             <input 
+            <input 
               type="text"
               placeholder="Pan Number"
               required
@@ -242,6 +251,19 @@ const JoinCaptainForm = () => {
             <input
               type="text"
               placeholder="Vehicle Number"
+              required
+              className="w-full px-4 py-2 border rounded-md"
+            />
+            <input 
+              type="text"
+              placeholder="RC Number"
+              required
+              className="w-full px-4 py-2 border rounded-md"
+            />
+
+            <input 
+              type="text"
+              placeholder="Driving License Number"
               required
               className="w-full px-4 py-2 border rounded-md"
             />
