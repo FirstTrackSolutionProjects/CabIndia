@@ -41,7 +41,16 @@ setPopup({
   return (
       <div className="w-full min-h-screen bg-white flex justify-center items-center px-4 py-10">
       <div className="w-full max-w-4xl bg-white border border-gray-200 rounded-2xl shadow-md p-8">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
+
+          <div className="flex justify-center items-center">
+          <img
+            src="/images/contact.jpg" 
+            alt="Contact Page"
+            className="rounded-lg shadow-md w-full h-full object-cover"
+          />
+        </div>
+
+        <h2 className="text-3xl font-bold text-center text-gray-800 m-2">
           Contact Us
         </h2>
         <p className="text-center text-gray-600 mb-8">

@@ -65,7 +65,7 @@ return (
         {/* Copyright Section */}
         
         <div className="mt-6 text-l bg-black text-center">
-          Copyright &copy; 2025, Developed by CabIndia
+          Copyright &copy; 2025, Developed by First Track Solution technologies
         </div>
       </footer>
     </>
