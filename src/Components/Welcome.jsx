@@ -71,7 +71,7 @@ const Welcome = () => {
         </div>
       </div>
 
-      {/* ✅ SERVICES SECTION (NOW BELOW, NOT SIDE) */}
+      
       <ServiceSection />
 
     </div>

@@ -72,8 +72,8 @@ export default function BottomNav() {
                   className={[
                     "flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300",
                     isActive
-                      ? "bg-yellow-400 text-gray-950 shadow-[0_4px_16px_rgba(250,204,21,0.5)] scale-110"
-                      : "text-gray-500",
+                      ? "bg-yellow-400 text-white shadow-[0_4px_16px_rgba(250,204,21,0.5)] scale-110"
+                      : "text-white",
                   ].join(" ")}
                 >
                   <Icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
@@ -83,7 +83,7 @@ export default function BottomNav() {
                 <span
                   className={[
                     "text-[9px] font-semibold tracking-wide transition-colors duration-300 leading-none",
-                    isActive ? "text-yellow-400" : "text-gray-600",
+                    isActive ? "text-yellow-400" : "text-white",
                   ].join(" ")}
                 >
                   {item.label}
@@ -145,7 +145,7 @@ export default function BottomNav() {
               </div>
               <button
                 onClick={closePopup}
-                className="mt-0.5 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700 transition-all active:scale-90"
+                className="mt-0.5 w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white hover:text-white hover:bg-gray-700 transition-all active:scale-90"
               >
                 <X size={15} />
               </button>
@@ -157,7 +157,7 @@ export default function BottomNav() {
               {/* Login */}
               <button
                 onClick={() => { closePopup(); navigate("/login"); }}
-                className="w-full flex items-center gap-3 bg-yellow-400 text-gray-950 rounded-2xl px-4 py-3.5 font-bold text-sm tracking-wide shadow-[0_4px_20px_rgba(250,204,21,0.35)] active:scale-[0.98] transition-all duration-150 relative overflow-hidden group"
+                className="w-full flex items-center gap-3 bg-yellow-400 text-white rounded-2xl px-4 py-3.5 font-bold text-sm tracking-wide shadow-[0_4px_20px_rgba(250,204,21,0.35)] active:scale-[0.98] transition-all duration-150 relative overflow-hidden group"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 pointer-events-none" />
                 <span className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center flex-shrink-0">
@@ -165,7 +165,7 @@ export default function BottomNav() {
                 </span>
                 <span className="flex flex-col text-left">
                   <span className="font-bold">Login</span>
-                  <span className="text-[11px] font-normal text-gray-800">
+                  <span className="text-[11px] font-normal text-white">
                     Access your passenger account
                   </span>
                 </span>
@@ -181,17 +181,17 @@ export default function BottomNav() {
                 </span>
                 <span className="flex flex-col text-left">
                   <span className="font-bold">Rider Login</span>
-                  <span className="text-[11px] font-normal text-gray-500">
+                  <span className="text-[11px] font-normal text-white">
                     Drive &amp; earn with CabIndia
                   </span>
                 </span>
-                <span className="ml-auto text-gray-600 text-lg font-bold">→</span>
+                <span className="ml-auto text-white text-lg font-bold">→</span>
               </button>
 
               {/* Cancel */}
               <button
                 onClick={closePopup}
-                className="w-full py-3 rounded-2xl text-gray-500 text-sm font-semibold tracking-wide hover:text-gray-300 transition-colors active:scale-[0.98]"
+                className="w-full py-3 rounded-2xl text-white text-sm font-semibold tracking-wide hover:text-white transition-colors active:scale-[0.98]"
               >
                 Cancel
               </button>
