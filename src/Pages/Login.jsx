@@ -69,7 +69,7 @@ export default function Login() {
                 <h1 className="text-2xl font-black text-white tracking-tight">
                   Welcome <span className="text-yellow-400 italic">Back</span>
                 </h1>
-                <p className="text-gray-600 text-xs mt-1.5">
+                <p className="text-white text-xs mt-1.5">
                   Sign in to continue your journey
                 </p>
               </div>
@@ -83,7 +83,7 @@ export default function Login() {
 
               {/* Email / Phone */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Email or Phone Number <span className="text-yellow-400">*</span>
                 </label>
                 <input
@@ -99,7 +99,7 @@ export default function Login() {
               {/* Password */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                  <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                     Password <span className="text-yellow-400">*</span>
                   </label>
                   <Link
@@ -121,7 +121,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setShowPwd(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-white transition-colors"
                   >
                     {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -152,7 +152,7 @@ export default function Login() {
             {/* ── OR Divider ── */}
             <div className="flex items-center gap-3 my-5">
               <div className="flex-1 h-px bg-gray-800" />
-              <span className="text-gray-700 text-[10px] font-bold tracking-widest uppercase">or</span>
+              <span className="text-white text-[10px] font-bold tracking-widest uppercase">or</span>
               <div className="flex-1 h-px bg-gray-800" />
             </div>
 
@@ -163,14 +163,14 @@ export default function Login() {
               onClick={() => {}}
             >
               <FcGoogle style={{ fontSize: 20, flexShrink: 0 }} />
-              <span className="text-gray-300 group-hover:text-white transition-colors text-sm">
+              <span className="text-white group-hover:text-white transition-colors text-sm">
                 Continue with Google
               </span>
             </button>
 
             {/* ── Bottom links ── */}
             <div className="flex flex-col items-center gap-3 mt-6">
-              <p className="text-gray-600 text-xs text-center">
+              <p className="text-white text-xs text-center">
                 Don't have an account?{" "}
                 <Link
                   to="/register/customer"
@@ -182,13 +182,13 @@ export default function Login() {
 
               <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-800 to-transparent" />
 
-              <p className="text-gray-700 text-[10px] tracking-wide text-center">
+              <p className="text-white text-[10px] tracking-wide text-center">
                 By logging in you agree to CabIndia's{" "}
-                <Link to="/terms" className="text-gray-600 hover:text-gray-400 underline underline-offset-2">
+                <Link to="/terms" className="text-white hover:text-white underline underline-offset-2">
                   Terms
                 </Link>{" "}
                 &{" "}
-                <Link to="/privacy" className="text-gray-600 hover:text-gray-400 underline underline-offset-2">
+                <Link to="/privacy" className="text-white hover:text-white underline underline-offset-2">
                   Privacy Policy
                 </Link>
               </p>

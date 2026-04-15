@@ -31,7 +31,7 @@ export default function CustomerRegister() {
             Welcome to{" "}
             <span className="text-yellow-400 italic">CabIndia!</span>
           </h2>
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <p className="text-white text-sm leading-relaxed">
             Your account has been created successfully.{" "}
             <span className="text-white font-semibold">Login to book your first ride.</span>
           </p>
@@ -97,7 +97,7 @@ export default function CustomerRegister() {
                 <h1 className="text-2xl font-black text-white tracking-tight">
                   Create an <span className="text-yellow-400 italic">Account</span>
                 </h1>
-                <p className="text-gray-600 text-xs mt-1.5">Register as a customer to book rides</p>
+                <p className="text-white text-xs mt-1.5">Register as a customer to book rides</p>
               </div>
             </div>
 
@@ -108,7 +108,7 @@ export default function CustomerRegister() {
 
               {/* Full Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Full Name <span className="text-yellow-400">*</span>
                 </label>
                 <input
@@ -123,7 +123,7 @@ export default function CustomerRegister() {
 
               {/* Email */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Email <span className="text-yellow-400">*</span>
                 </label>
                 <input
@@ -138,11 +138,11 @@ export default function CustomerRegister() {
 
               {/* Phone */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Phone Number <span className="text-yellow-400">*</span>
                 </label>
                 <div className="flex gap-2">
-                  <span className="flex items-center gap-1.5 px-3 bg-gray-800 border border-gray-700 rounded-xl text-xs text-gray-400 font-bold whitespace-nowrap flex-shrink-0">
+                  <span className="flex items-center gap-1.5 px-3 bg-gray-800 border border-gray-700 rounded-xl text-xs text-white font-bold whitespace-nowrap flex-shrink-0">
                     🇮🇳 +91
                   </span>
                   <input
@@ -158,7 +158,7 @@ export default function CustomerRegister() {
 
               {/* Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Create Password <span className="text-yellow-400">*</span>
                 </label>
                 <div className="relative">
@@ -171,7 +171,7 @@ export default function CustomerRegister() {
                     className="w-full bg-gray-800 border border-gray-700 focus:border-yellow-400/60 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-all duration-200 focus:shadow-[0_0_0_3px_rgba(250,204,21,0.08)]"
                   />
                   <button type="button" onClick={() => setShowPwd(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-white transition-colors">
                     {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
@@ -179,7 +179,7 @@ export default function CustomerRegister() {
 
               {/* Confirm Password */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
+                <label className="text-[10px] font-bold tracking-[0.15em] text-white uppercase">
                   Confirm Password <span className="text-yellow-400">*</span>
                 </label>
                 <div className="relative">
@@ -192,7 +192,7 @@ export default function CustomerRegister() {
                     className="w-full bg-gray-800 border border-gray-700 focus:border-yellow-400/60 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-gray-600 outline-none transition-all duration-200 focus:shadow-[0_0_0_3px_rgba(250,204,21,0.08)]"
                   />
                   <button type="button" onClick={() => setShowCPwd(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white hover:text-white transition-colors">
                     {showCPwd ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
@@ -221,18 +221,18 @@ export default function CustomerRegister() {
 
             {/* bottom links */}
             <div className="flex flex-col items-center gap-3 mt-6">
-              <p className="text-gray-600 text-xs text-center">
+              <p className="text-white text-xs text-center">
                 Already have an account?{" "}
                 <Link to="/login" className="text-yellow-400 font-bold hover:text-yellow-300 transition-colors">
                   Login here
                 </Link>
               </p>
               <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-800 to-transparent" />
-              <p className="text-gray-700 text-[10px] tracking-wide text-center">
+              <p className="text-white text-[10px] tracking-wide text-center">
                 By registering you agree to CabIndia's{" "}
-                <Link to="/terms" className="text-gray-600 hover:text-gray-400 underline underline-offset-2">Terms</Link>
+                <Link to="/terms" className="text-white hover:text-white underline underline-offset-2">Terms</Link>
                 {" "}&{" "}
-                <Link to="/privacy" className="text-gray-600 hover:text-gray-400 underline underline-offset-2">Privacy Policy</Link>
+                <Link to="/privacy" className="text-white hover:text-white underline underline-offset-2">Privacy Policy</Link>
               </p>
             </div>
 
