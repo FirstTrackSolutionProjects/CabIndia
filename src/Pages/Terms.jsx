@@ -76,9 +76,7 @@ export default function Terms() {
           </p>
           <div className="flex items-center justify-center gap-2 mt-5">
             <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/50" />
-            <span className="text-gray-600 text-xs font-mono tracking-wide">
-              Last updated: April 11, 2026
-            </span>
+            
             <div className="w-1.5 h-1.5 rounded-full bg-yellow-400/50" />
           </div>
         </div>

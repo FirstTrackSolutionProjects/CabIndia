@@ -73,9 +73,7 @@ export default function Cancel() {
           </p>
           <div className="flex items-center justify-center gap-2 mt-5">
             <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-            <span className="text-gray-600 text-xs font-medium tracking-wide">
-              Last updated: <span className="text-gray-400">April 10, 2025</span>
-            </span>
+            
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ServiceSection from "./ServiceSection";
+import CabIndiaChat from "./CabIndiaChat";
 
 const Welcome = () => {
   const [source, setSource] = useState("");
@@ -73,6 +74,7 @@ const Welcome = () => {
 
       
       <ServiceSection />
+      <CabIndiaChat/>
 
     </div>
   );
