@@ -64,7 +64,7 @@ return (
 
         {/* Copyright Section */}
         
-        <div className="mt-6 text-l bg-black text-center">
+        <div className="mt-6 text-l bg-black text-center pb-20 md:pb-4">
           Copyright &copy; 2026, Developed by First Track Solution Technologies
         </div>
       </footer>

@@ -12,7 +12,7 @@ const navItems = [
   { name: "Sign In",      link: "#",   dropdown: true },
   {
     name: "Chat",
-    link: "https://wa.me/911234567890?text=Hello%20AI%20Assistant,%20I%20want%20to%20know%20more%20about%20your%20services.",
+    link: "/chat",
   },
 ];
 

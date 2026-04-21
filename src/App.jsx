@@ -25,6 +25,7 @@ import Privacy from "./Pages/Privacy";
 import Safety from "./Pages/Safety";
 // import Career from "./Pages/Career";
 import Blog from "./Pages/Blog";
+import CabIndiaChat from "./Components/CabIndiaChat";
 
 function App() {
   //  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -67,7 +68,7 @@ function App() {
         <Route path="/safety" element={<Safety/>} />
         {/* <Route path="/career" element={<Career/>} /> */}
         <Route path="/blog" element={<Blog/>} />
-
+<Route path="/chat" element={<CabIndiaChat/>} />
       </Routes>
           
 <BottomNav />
