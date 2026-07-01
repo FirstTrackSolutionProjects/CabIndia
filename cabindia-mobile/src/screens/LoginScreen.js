@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5, Feather } from '@expo/vector-icons'; // Or other icon libraries
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { COLORS, SIZES, GLOBAL_STYLES } from '../styles/theme'; // Import your theme
 
 const LoginScreen = () => {
@@ -41,8 +42,10 @@ const LoginScreen = () => {
 
       if (response.ok) {
         Alert.alert('Success', data.message);
-        // Store token (e.g., using AsyncStorage) and navigate
-        // Example: await AsyncStorage.setItem('userToken', data.token);
+        // Store token using AsyncStorage
+        await AsyncStorage.setItem('userToken', data.token);
+        // Also save user data if needed
+        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
         navigation.navigate('Home'); // Navigate to your main app screen
       } else {
         setError(data.message || 'Login failed');
