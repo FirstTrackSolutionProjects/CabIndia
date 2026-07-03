@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/authRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const rideRoutes = require('./routes/rideRoutes');
 const app = express();
 
 // Middleware
@@ -15,6 +16,7 @@ app.use(bodyParser.json()); // To parse JSON request bodies
 // Define API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/rides', rideRoutes);
 
 // Simple test route
 app.get('/', (req, res) => {
