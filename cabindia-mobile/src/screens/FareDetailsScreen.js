@@ -1,9 +1,9 @@
 // cabindia-mobile/src/screens/FareDetailsScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native'; // Corrected: useRouter to useRoute
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Car, Bike, Package, Clock, DollarSign, CreditCard, ChevronDown } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons'; // Changed to import Feather for general icons
 
 const rideTypes = [
   { type: "Bike", icon: "motorcycle", pricePerKm: 7, emoji: "🏍️", color: COLORS.tertiary },
@@ -146,14 +146,14 @@ export default function FareDetailsScreen() {
           onPress={() => setShowPaymentOptions(!showPaymentOptions)}
         >
           <View style={styles.paymentMethodLeft}>
-            {selectedPaymentMethod?.icon === 'dollar-sign' && <DollarSign name="dollar-sign" size={20} color={COLORS.text} />}
-            {selectedPaymentMethod?.icon === 'credit-card' && <CreditCard name="credit-card" size={20} color={COLORS.text} />}
+            {selectedPaymentMethod?.icon === 'dollar-sign' && <Feather name="dollar-sign" size={20} color={COLORS.text} />}
+            {selectedPaymentMethod?.icon === 'credit-card' && <Feather name="credit-card" size={20} color={COLORS.text} />}
             <View>
               <Text style={styles.paymentMethodName}>{selectedPaymentMethod?.name}</Text>
               <Text style={styles.paymentMethodDesc}>{selectedPaymentMethod?.description}</Text>
             </View>
           </View>
-          <ChevronDown name="chevron-down" size={16} color={COLORS.textMuted} style={{ transform: [{ rotate: showPaymentOptions ? '180deg' : '0deg' }] }} />
+          <Feather name="chevron-down" size={16} color={COLORS.textMuted} style={{ transform: [{ rotate: showPaymentOptions ? '180deg' : '0deg' }] }} />
         </TouchableOpacity>
 
         {showPaymentOptions && (
@@ -170,8 +170,8 @@ export default function FareDetailsScreen() {
                   selectedPayment === method.name ? { backgroundColor: `${COLORS.primary}1A` } : {}
                 ]}
               >
-                {method.icon === 'dollar-sign' && <DollarSign name="dollar-sign" size={20} color={COLORS.text} />}
-                {method.icon === 'credit-card' && <CreditCard name="credit-card" size={20} color={COLORS.text} />}
+                {method.icon === 'dollar-sign' && <Feather name="dollar-sign" size={20} color={COLORS.text} />}
+                {method.icon === 'credit-card' && <Feather name="credit-card" size={20} color={COLORS.text} />}
                 <View>
                   <Text style={styles.paymentOptionName}>{method.name}</Text>
                   <Text style={styles.paymentOptionDesc}>{method.description}</Text>
