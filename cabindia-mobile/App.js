@@ -34,8 +34,8 @@ export default function App() {
         <Stack.Screen name="CaptainApplication" component={CaptainApplicationScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="FareDetails" component={FareDetailsScreen} /> {/* NEW */}
-        <Stack.Screen name="Map" component={MapScreen} /> {/* NEW */}
+        <Stack.Screen name="FareDetails" component={FareDetailsScreen} />
+        <Stack.Screen name="Map" component={MapScreen} />
         {/* Add more screens as you convert them */}
       </Stack.Navigator>
     </NavigationContainer>

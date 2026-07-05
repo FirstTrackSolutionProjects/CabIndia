@@ -12,7 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5, Feather } from '@expo/vector-icons'; // Or other icon libraries
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
-import { COLORS, SIZES, GLOBAL_STYLES } from '../styles/theme'; // Import your theme
+import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme'; // Import your theme
 
 const LoginScreen = () => {
   const navigation = useNavigation();
