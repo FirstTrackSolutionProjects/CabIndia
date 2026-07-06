@@ -3,7 +3,10 @@ import 'react-native-gesture-handler'; // Required for react-navigation
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar } from 'react-native';
+import { StatusBar, LogBox } from 'react-native';
+
+// Ignore the InteractionManager deprecation warning
+LogBox.ignoreLogs(['InteractionManager has been deprecated']);
 
 // Import your screens
 import WelcomeScreen from './src/screens/WelcomeScreen';

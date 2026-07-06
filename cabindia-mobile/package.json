@@ -24,7 +24,8 @@
     "react-native-swiper-flatlist": "^3.2.5",
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "~0.21.0",
-    "react-navigation": "^5.0.0"
+    "react-navigation": "^5.0.0",
+    "socket.io-client": "^4.8.3"
   },
   "scripts": {
     "start": "expo start",
