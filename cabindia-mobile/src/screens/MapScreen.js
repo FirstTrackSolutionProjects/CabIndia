@@ -1,48 +1,55 @@
 // cabindia-mobile/src/screens/MapScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Platform, PermissionsAndroid, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, Platform, PermissionsAndroid, Alert, TouchableOpacity } from 'react-native';
 import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { ArrowLeft, Phone, MessageCircle } from '@expo/vector-icons';
-import carIcon from '../../assets/car_icon.png'; // Make sure you have a car_icon.png in your assets folder
+import { Feather } from '@expo/vector-icons'; // Corrected icon import
+import carIcon from '../../assets/car_icon.png';
+
+// NEW IMPORTS FOR SOCKET.IO
+import { io } from 'socket.io-client';
+
+// IMPORTANT: Replace with your actual backend IP or domain
+// For development, use your machine's local IP, e.g., 'http://192.168.1.XXX:5000'
+const BACKEND_URL = 'http://YOUR_BACKEND_IP_ADDRESS:5000';
+const socket = io(BACKEND_URL, {
+  transports: ['websocket'], // Prefer websockets for real-time
+  forceNew: true // Ensure a new connection each time this component mounts
+});
 
 const MapScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { ride, icon, source, destination, estimatedFare } = route.params || {};
+  // Extract rideId from route params
+  const { ride, icon, source, destination, estimatedFare, rideId } = route.params || {};
 
   const [currentLocation, setCurrentLocation] = useState(null);
-  const [driverLocation, setDriverLocation] = useState(null); // Simulated driver location
+  // driverLocation will be updated by socket.io
+  const [driverLocation, setDriverLocation] = useState(null);
   const mapRef = useRef(null);
   const markerRef = useRef(null);
 
-  const initialRegion = {
-    latitude: currentLocation?.latitude || 20.2764, // Default to Bhubaneswar for now
-    longitude: currentLocation?.longitude || 85.8456,
+  // Initial region can be a default or derived from source/destination if available
+  // It's mainly for the MapView's initial camera position
+  const defaultRegion = {
+    latitude: 20.2764, // Default to Bhubaneswar for now
+    longitude: 85.8456,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   };
 
   const driverAnimatedRegion = useRef(
     new AnimatedRegion({
-      latitude: initialRegion.latitude + 0.005,
-      longitude: initialRegion.longitude + 0.005,
-      latitudeDelta: initialRegion.latitudeDelta,
-      longitudeDelta: initialRegion.longitudeDelta,
+      latitude: defaultRegion.latitude, // Will be updated by real-time data
+      longitude: defaultRegion.longitude, // Will be updated by real-time data
+      latitudeDelta: defaultRegion.latitudeDelta,
+      longitudeDelta: defaultRegion.longitudeDelta,
     })
   ).current;
 
-  // Simulate a route for the car to follow
-  const simulatedRoute = [
-    { latitude: initialRegion.latitude + 0.005, longitude: initialRegion.longitude + 0.005 },
-    { latitude: initialRegion.latitude + 0.010, longitude: initialRegion.longitude + 0.008 },
-    { latitude: initialRegion.latitude + 0.015, longitude: initialRegion.longitude + 0.012 },
-    { latitude: initialRegion.latitude + 0.020, longitude: initialRegion.longitude + 0.015 },
-  ];
-  const [routeIndex, setRouteIndex] = useState(0);
-
+  // useEffect for initial user location and map setup
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -56,45 +63,51 @@ const MapScreen = () => {
         longitude: location.coords.longitude,
       });
 
-      // Initialize driver location near current user
-      setDriverLocation({
-        latitude: location.coords.latitude + 0.005,
-        longitude: location.coords.longitude + 0.005,
-      });
-
-      // Start simulating driver movement
-      const interval = setInterval(() => {
-        setRouteIndex(prevIndex => {
-          const nextIndex = (prevIndex + 1) % simulatedRoute.length;
-          const nextPoint = simulatedRoute[nextIndex];
-
-          driverAnimatedRegion.timing({
-            latitude: nextPoint.latitude,
-            longitude: nextPoint.longitude,
-            duration: 5000, // Move over 5 seconds
-            useNativeDriver: true,
-          }).start();
-
-          setDriverLocation(nextPoint); // Update state for potential re-renders or other logic
-          return nextIndex;
+      // Animate map to current user location
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
         });
-      }, 5000); // Update every 5 seconds
-
-      return () => clearInterval(interval);
-
+      }
     })();
-  }, []);
+  }, []); // Run once on component mount
 
+  // useEffect for Socket.IO integration to listen for driver updates
   useEffect(() => {
-    if (currentLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: currentLocation.latitude,
-        longitude: currentLocation.longitude,
-        latitudeDelta: 0.02,
-        longitudeDelta: 0.02,
-      });
+    if (rideId) {
+      console.log(`Attempting to join ride room: ride_${rideId}`);
+      socket.emit('join_ride', rideId);
+
+      const locationUpdateHandler = (data) => {
+        console.log(`Received location update for ride ${data.rideId}:`, data);
+        if (driverAnimatedRegion) {
+          driverAnimatedRegion.timing({
+            latitude: data.latitude,
+            longitude: data.longitude,
+            duration: 2000, // Smooth transition over 2 seconds
+            useNativeDriver: true, // Recommended for performance
+          }).start();
+        }
+        setDriverLocation({ latitude: data.latitude, longitude: data.longitude }); // Keep state updated if needed for other UI elements
+      };
+
+      socket.on(`location_${rideId}`, locationUpdateHandler);
+
+      // Cleanup on unmount
+      return () => {
+        console.log(`Cleaning up socket for ride room: ride_${rideId}`);
+        socket.off(`location_${rideId}`, locationUpdateHandler);
+        // CRITICAL NOTE: Disconnecting the global socket here might affect other screens
+        // if they rely on the same persistent socket connection. For a full-fledged app,
+        // consider managing the socket connection in a global context (e.g., AuthContext)
+        // and only joining/leaving rooms within components.
+        socket.disconnect(); // Disconnects the entire socket connection as per your request
+      };
     }
-  }, [currentLocation]);
+  }, [rideId]); // Re-run if rideId changes
 
   return (
     <View style={GLOBAL_STYLES.container}>
@@ -102,7 +115,7 @@ const MapScreen = () => {
         ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
-        initialRegion={initialRegion}
+        initialRegion={defaultRegion}
         showsUserLocation
         followsUserLocation
       >
@@ -118,7 +131,7 @@ const MapScreen = () => {
       </MapView>
 
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <ArrowLeft name="arrow-left" size={24} color={COLORS.text} />
+        <Feather name="arrow-left" size={24} color={COLORS.text} />
       </TouchableOpacity>
 
       <View style={styles.bottomSheet}>
@@ -135,11 +148,11 @@ const MapScreen = () => {
         </View>
         <View style={styles.driverContact}>
           <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Call Driver', 'Calling simulated driver...')}>
-            <Phone name="phone" size={20} color={COLORS.background} />
+            <Feather name="phone" size={20} color={COLORS.background} />
             <Text style={styles.contactButtonText}>Call Driver</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.contactButton} onPress={() => navigation.navigate('Chat')}>
-            <MessageCircle name="message-circle" size={20} color={COLORS.background} />
+            <Feather name="message-circle" size={20} color={COLORS.background} />
             <Text style={styles.contactButtonText}>Chat</Text>
           </TouchableOpacity>
         </View>
