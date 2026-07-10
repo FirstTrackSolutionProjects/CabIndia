@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.removeItem('userData');
   };
 
-  const isLoggedIn = async () => {
+  const checkLoginStatus = async () => { // Renamed isLoggedIn to checkLoginStatus for clarity
     try {
       let token = await AsyncStorage.getItem('userToken');
       let data = await AsyncStorage.getItem('userData');
@@ -30,14 +30,15 @@ export const AuthProvider = ({ children }) => {
         setUserToken(token);
         setUserData(JSON.parse(data));
       }
-      setIsLoading(false);
     } catch (e) {
-      console.log(`isLoggedIn error: ${e}`);
+      console.log(`checkLoginStatus error: ${e}`);
+    } finally {
+      setIsLoading(false); // Ensure loading state is always updated
     }
   };
 
   useEffect(() => {
-    isLoggedIn();
+    checkLoginStatus();
   }, []);
 
   return (

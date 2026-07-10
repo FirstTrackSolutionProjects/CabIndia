@@ -1,5 +1,5 @@
 // cabindia-mobile/src/screens/LoginScreen.js
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react'; // Added useContext
 import {
   View,
   Text,
@@ -10,12 +10,13 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome5, Feather } from '@expo/vector-icons'; // Or other icon libraries
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
-import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme'; // Import your theme
+import { FontAwesome5, Feather } from '@expo/vector-icons';
+import { AuthContext } from '../context/AuthContext'; // NEW: Import AuthContext
+import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const { login } = useContext(AuthContext); // NEW: Get login function from context
   const [showPwd, setShowPwd] = useState(false);
   const [form, setForm] = useState({ credential: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ const LoginScreen = () => {
     setError(null);
     try {
       // Replace with your actual backend IP or domain
-      const backendUrl = 'http://YOUR_BACKEND_IP_ADDRESS:5000/api/auth/login'; // IMPORTANT: Use your local IP for development
+      const backendUrl = 'http://192.168.29.203:5000/api/auth/login'; // IMPORTANT: Use your local IP for development
       const response = await fetch(backendUrl, {
         method: 'POST',
         headers: {
@@ -42,11 +43,9 @@ const LoginScreen = () => {
 
       if (response.ok) {
         Alert.alert('Success', data.message);
-        // Store token using AsyncStorage
-        await AsyncStorage.setItem('userToken', data.token);
-        // Also save user data if needed
-        await AsyncStorage.setItem('userData', JSON.stringify(data.user));
-        navigation.navigate('Home'); // Navigate to your main app screen
+        // Use login function from AuthContext to store token and user data
+        await login(data.token, data.user);
+        // Navigation is now handled by RootNavigator based on userToken state change
       } else {
         setError(data.message || 'Login failed');
         Alert.alert('Login Failed', data.message || 'Please try again.');
@@ -141,7 +140,7 @@ const LoginScreen = () => {
             Don't have an account?{' '}
             <Text
               style={styles.registerLink}
-              onPress={() => navigation.navigate('RegisterCustomer')} // Assuming this route exists
+              onPress={() => navigation.navigate('RegisterCustomer')}
             >
               Register here
             </Text>

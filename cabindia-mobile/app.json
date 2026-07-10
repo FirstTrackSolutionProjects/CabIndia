@@ -5,19 +5,26 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0a0a0a"
+    },
     "ios": {
       "bundleIdentifier": "com.cabindia.app",
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "CabIndia needs your location to find nearby rides.",
-        "NSLocationAlwaysUsageDescription": "CabIndia needs your location to track your ride safely."
+        "NSLocationAlwaysUsageDescription": "CabIndia needs your location to track your ride safely.",
+        "NSMotionUsageDescription": "CabIndia uses motion data to improve location accuracy and detect driving activity.",
+        "GOOGLE_MAPS_API_KEY": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
       }
     },
     "android": {
       "package": "com.cabindia.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0a0a0a",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -25,8 +32,14 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
-        "FOREGROUND_SERVICE"
-      ]
+        "FOREGROUND_SERVICE",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +47,11 @@
     "extra": {
       "eas": {
         "projectId": "eeda1796-b19d-4827-b604-9cf544dc54c5"
-      }
-    }
+      },
+      "apiUrl": "http://192.168.29.203:5000/api"
+    },
+    "plugins": [
+      "expo-splash-screen"
+    ]
   }
 }

@@ -13,7 +13,7 @@ import { io } from 'socket.io-client';
 
 // IMPORTANT: Replace with your actual backend IP or domain
 // For development, use your machine's local IP, e.g., 'http://192.168.1.XXX:5000'
-const BACKEND_URL = 'http://YOUR_BACKEND_IP_ADDRESS:5000';
+const BACKEND_URL = 'http://192.168.29.203:5000';
 const socket = io(BACKEND_URL, {
   transports: ['websocket'], // Prefer websockets for real-time
   forceNew: true // Ensure a new connection each time this component mounts
