@@ -6,13 +6,12 @@ import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons'; // Changed to import Feather for general icons
 
 const rideTypes = [
-  { type: "Bike", icon: "motorcycle", pricePerKm: 7, emoji: "🏍️", color: COLORS.tertiary },
-  { type: "Auto", icon: "truck-pickup", pricePerKm: 10, emoji: "🛺", color: COLORS.primary },
-  { type: "Mini", icon: "car", pricePerKm: 12, emoji: "🚗", color: COLORS.secondary },
-  { type: "Sedan", icon: "car", pricePerKm: 15, emoji: "🚙", color: COLORS.textMuted },
-  // Adding placeholders for other types from web
-  { type: "Parcel", icon: "box", pricePerKm: 8, emoji: "📦", color: COLORS.borderColor },
-  { type: "Rental", icon: "clock", pricePerKm: 20, emoji: "⏱️", color: COLORS.inputBackground },
+  { type: "Bike", pricePerKm: 7, emoji: "🏍️" },
+  { type: "Auto", pricePerKm: 10, emoji: "🛺" },
+  { type: "Mini", pricePerKm: 12, emoji: "🚗" },
+  { type: "Sedan", pricePerKm: 15, emoji: "🚙" },
+  { type: "Parcel", pricePerKm: 8, emoji: "📦" },
+  { type: "Rental", pricePerKm: 20, emoji: "⏱️" },
 ];
 
 const paymentOptions = [
@@ -83,6 +82,7 @@ export default function FareDetailsScreen() {
             placeholderTextColor={COLORS.textMuted}
             value={source}
             onChangeText={setSource}
+            editable={false} // Make non-editable as we get it from previous screen
           />
 
           <View style={styles.dividerDots} />
@@ -94,6 +94,7 @@ export default function FareDetailsScreen() {
             placeholderTextColor={COLORS.textMuted}
             value={destination}
             onChangeText={setDestination}
+            editable={false} // Make non-editable
           />
         </View>
 
@@ -103,9 +104,7 @@ export default function FareDetailsScreen() {
           </Text>
         )}
 
-        <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-          <Text style={styles.clearButtonText}>Clear Locations</Text>
-        </TouchableOpacity>
+        {/* Removed clear button as inputs are now non-editable */}
       </View>
 
       <View style={styles.card}>
@@ -262,17 +261,13 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     alignSelf: 'center',
-    marginTop: SIZES.margin,
-    paddingVertical: SIZES.margin / 2,
-    paddingHorizontal: SIZES.padding,
-    borderRadius: SIZES.radius,
-    borderWidth: 1,
-    borderColor: COLORS.textMuted,
-  },
-  clearButtonText: {
+    marginVertical: SIZES.margin,
     color: COLORS.textMuted,
-    fontSize: SIZES.small,
-    fontFamily: FONTS.semibold,
+    fontSize: SIZES.medium,
+    lineHeight: SIZES.medium,
+    height: SIZES.medium * 2,
+    justifyContent: 'center',
+    textAlignVertical: 'center',
   },
   sectionTitle: {
     ...GLOBAL_STYLES.text,

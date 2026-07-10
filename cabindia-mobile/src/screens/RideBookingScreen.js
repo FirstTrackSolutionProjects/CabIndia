@@ -1,11 +1,15 @@
-// cabindia-mobile/src/screens/RideBookingScreen.js (Renamed from HomeScreen.js)
+// cabindia-mobile/src/screens/RideBookingScreen.js
+// This is the implementation for the RideBookingScreen with a resizable bottom sheet.
+
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Dimensions, ScrollView } from 'react-native'; // Added Dimensions, ScrollView
 import { useNavigation } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
+
+const { height: screenHeight } = Dimensions.get('window'); // Get screen height
 
 export default function RideBookingScreen() {
   const navigation = useNavigation();
@@ -13,6 +17,12 @@ export default function RideBookingScreen() {
   const [destination, setDestination] = useState('');
   const [currentLocation, setCurrentLocation] = useState(null);
   const mapRef = useRef(null);
+
+  // State for bottom sheet expansion
+  const [isBottomSheetExpanded, setIsBottomSheetExpanded] = useState(false);
+  // Min height should be enough to show title, inputs, and button + tab bar padding
+  const minBottomSheetHeight = screenHeight * 0.35; // 35% of screen height
+  const maxBottomSheetHeight = screenHeight * 0.70; // 70% of screen height
 
   useEffect(() => {
     (async () => {
@@ -53,7 +63,7 @@ export default function RideBookingScreen() {
     <KeyboardAvoidingView
       style={GLOBAL_STYLES.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // Adjust as needed
+      keyboardVerticalOffset={0} // Let the bottomSheet's ScrollView handle content when keyboard is up
     >
       <View style={styles.mapContainer}>
         <MapView
@@ -85,33 +95,48 @@ export default function RideBookingScreen() {
         </MapView>
       </View>
 
-      <View style={styles.bottomSheet}>
-        <Text style={styles.sheetTitle}>Where are you going?</Text>
-        <View style={styles.inputGroup}>
-          <Feather name="map-pin" size={SIZES.large} color={COLORS.primary} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Pickup Location"
-            placeholderTextColor={COLORS.textMuted}
-            value={source}
-            onChangeText={setSource}
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Feather name="flag" size={SIZES.large} color={COLORS.secondary} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Drop-off Location"
-            placeholderTextColor={COLORS.textMuted}
-            value={destination}
-            onChangeText={setDestination}
-          />
-        </View>
-
-        <TouchableOpacity style={styles.findRideButton} onPress={handleGetFare}>
-          <Text style={styles.findRideButtonText}>Find a Ride</Text>
-          <Feather name="arrow-right" size={SIZES.medium} color={COLORS.background} />
+      <View style={[
+        styles.bottomSheet,
+        { height: isBottomSheetExpanded ? maxBottomSheetHeight : minBottomSheetHeight },
+      ]}>
+        {/* Drag Handle to toggle expansion */}
+        <TouchableOpacity
+          style={styles.dragHandleContainer}
+          onPress={() => setIsBottomSheetExpanded(!isBottomSheetExpanded)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.dragHandleBar} />
+          <Feather name={isBottomSheetExpanded ? "chevron-down" : "chevron-up"} size={20} color={COLORS.textMuted} />
         </TouchableOpacity>
+
+        <ScrollView contentContainerStyle={styles.bottomSheetContent} keyboardShouldPersistTaps="handled">
+          <Text style={styles.sheetTitle}>Where are you going?</Text>
+          <View style={styles.inputGroup}>
+            <Feather name="map-pin" size={SIZES.large} color={COLORS.primary} style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Pickup Location"
+              placeholderTextColor={COLORS.textMuted}
+              value={source}
+              onChangeText={setSource}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Feather name="flag" size={SIZES.large} color={COLORS.secondary} style={styles.icon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Drop-off Location"
+              placeholderTextColor={COLORS.textMuted}
+              value={destination}
+              onChangeText={setDestination}
+            />
+          </View>
+
+          <TouchableOpacity style={styles.findRideButton} onPress={handleGetFare}>
+            <Text style={styles.findRideButtonText}>Find a Ride</Text>
+            <Feather name="arrow-right" size={SIZES.medium} color={COLORS.background} />
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </KeyboardAvoidingView>
   );
@@ -119,22 +144,46 @@ export default function RideBookingScreen() {
 
 const styles = StyleSheet.create({
   mapContainer: {
-    flex: 2, // Map takes 2/3 of the screen
+    flex: 1, // Map takes all available space
   },
   map: {
     width: '100%',
     height: '100%',
   },
   bottomSheet: {
-    flex: 1, // Bottom sheet takes 1/3 of the screen
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.cardBackground,
     borderTopLeftRadius: SIZES.radius * 2,
     borderTopRightRadius: SIZES.radius * 2,
-    padding: SIZES.padding * 2,
+    paddingHorizontal: SIZES.padding * 2,
+    paddingTop: SIZES.padding * 2,
+    // The effective paddingBottom for content will come from `bottomSheetContent`
     borderTopWidth: 1,
     borderColor: COLORS.borderColor,
     ...GLOBAL_STYLES.shadow,
+    // height will be set dynamically in inline style
+  },
+  bottomSheetContent: {
+    paddingBottom: SIZES.padding * 5, // Ensures content and button are above the tab bar (tab bar height is SIZES.padding * 5)
     justifyContent: 'flex-start',
+    flexGrow: 1, // Allow content to grow to fill height
+  },
+  dragHandleContainer: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.margin,
+    paddingVertical: SIZES.padding / 2,
+    marginBottom: SIZES.margin * 1.5,
+  },
+  dragHandleBar: {
+    width: 60,
+    height: 6,
+    backgroundColor: COLORS.borderColor,
+    borderRadius: 3,
   },
   sheetTitle: {
     ...GLOBAL_STYLES.heading1,

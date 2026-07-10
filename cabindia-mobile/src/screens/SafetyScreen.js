@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { COLORS, GLOBAL_STYLES, SIZES } from '../styles/theme';
-import { Shield, MapPin, Phone } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons'; // Changed to Feather
 
 export default function SafetyScreen() {
   const safetyFeatures = [
@@ -19,7 +19,7 @@ export default function SafetyScreen() {
         {safetyFeatures.map((f, i) => (
           <View key={i} style={styles.card}>
             <View style={styles.iconBox}>
-               <Shield name={f.icon} size={24} color={COLORS.primary} />
+               <Feather name={f.icon} size={24} color={COLORS.primary} />
             </View>
             <View>
               <Text style={styles.cardTitle}>{f.title}</Text>
