@@ -1,9 +1,10 @@
 // cabindia-mobile/src/screens/FareDetailsScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native'; // Corrected: useRouter to useRoute
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons'; // Changed to import Feather for general icons
+import { Feather } from '@expo/vector-icons';
+import { calculateDistance } from '../utils/locationUtils'; // NEW: Import utility for distance
 
 const rideTypes = [
   { type: "Bike", pricePerKm: 7, emoji: "🏍️" },
@@ -22,48 +23,52 @@ const paymentOptions = [
 export default function FareDetailsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { source: initialSource, destination: initialDestination } = route.params || {};
+  const {
+    sourceAddress,
+    destinationAddress,
+    sourceLat,
+    sourceLon,
+    destinationLat,
+    destinationLon
+  } = route.params || {};
 
-  const [source, setSource] = useState(initialSource || '');
-  const [destination, setDestination] = useState(initialDestination || '');
   const [selectedPayment, setSelectedPayment] = useState("Cash");
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedRide, setSelectedRide] = useState(null);
 
-  const getDistanceKm = () => {
-    // In a real app, this would be calculated using a map API
-    if (!source || !destination) return 0;
-    if (source === destination) return 1;
-    return Math.floor(Math.random() * 10) + 2; // Simulated distance between 2-11 km
-  };
+  // Calculate distance based on passed coordinates
+  const distance = (sourceLat && sourceLon && destinationLat && destinationLon)
+    ? calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon)
+    : 0; // Default to 0 if coordinates are missing
 
-  const distance = getDistanceKm();
   const selectedPaymentMethod = paymentOptions.find(p => p.name === selectedPayment);
 
   const handleContinue = () => {
-    if (!source || !destination) {
-      Alert.alert('Missing Info', 'Please enter both source and destination.');
+    if (!sourceAddress || !destinationAddress) {
+      Alert.alert('Missing Info', 'Pickup and drop-off locations are required.');
       return;
     }
     if (!selectedRide) {
       Alert.alert('No Ride Selected', 'Please select a ride type first.');
       return;
     }
+
+    const minFare = selectedRide.pricePerKm * distance;
+    const maxFare = Math.ceil(minFare * 1.2); // 20% buffer
+
     // Navigate to a ride searching/confirmation screen
     navigation.navigate('Map', {
       ride: selectedRide.type,
       icon: selectedRide.emoji,
-      source,
-      destination,
+      source: sourceAddress,
+      destination: destinationAddress,
+      pickupLat: sourceLat,
+      pickupLon: sourceLon,
+      dropoffLat: destinationLat,
+      dropoffLon: destinationLon,
       paymentMethod: selectedPayment,
-      estimatedFare: `${Math.floor(selectedRide.pricePerKm * distance)} - ${Math.ceil(selectedRide.pricePerKm * distance * 1.2)}`
+      estimatedFare: `${Math.floor(minFare)} - ${maxFare}` // Pass calculated range
     });
-  };
-
-  const handleClear = () => {
-    setSource('');
-    setDestination('');
-    setSelectedRide(null);
   };
 
   return (
@@ -80,31 +85,29 @@ export default function FareDetailsScreen() {
             style={styles.input}
             placeholder="Enter pickup location"
             placeholderTextColor={COLORS.textMuted}
-            value={source}
-            onChangeText={setSource}
-            editable={false} // Make non-editable as we get it from previous screen
+            value={sourceAddress || ''}
+            editable={false}
           />
 
-          <View style={styles.dividerDots} />
+          <View style={styles.dividerDots}>
+            <Text style={{color: COLORS.textMuted, fontSize: SIZES.body}}>• • •</Text>
+          </View>
 
           <Text style={styles.label}>Destination</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter drop-off location"
             placeholderTextColor={COLORS.textMuted}
-            value={destination}
-            onChangeText={setDestination}
-            editable={false} // Make non-editable
+            value={destinationAddress || ''}
+            editable={false}
           />
         </View>
 
         {distance > 0 && (
           <Text style={styles.distanceText}>
-            Estimated Distance: <Text style={styles.highlightText}>{distance} km</Text>
+            Estimated Distance: <Text style={styles.highlightText}>{distance.toFixed(1)} km</Text>
           </Text>
         )}
-
-        {/* Removed clear button as inputs are now non-editable */}
       </View>
 
       <View style={styles.card}>
@@ -130,7 +133,7 @@ export default function FareDetailsScreen() {
               </View>
               {distance > 0 && (
                 <Text style={styles.ridePrice}>
-                  ₹{minFare} - ₹{maxFare}
+                  ₹{minFare.toFixed(0)} - ₹{maxFare.toFixed(0)}
                 </Text>
               )}
             </TouchableOpacity>
@@ -145,14 +148,14 @@ export default function FareDetailsScreen() {
           onPress={() => setShowPaymentOptions(!showPaymentOptions)}
         >
           <View style={styles.paymentMethodLeft}>
-            {selectedPaymentMethod?.icon === 'dollar-sign' && <Feather name="dollar-sign" size={20} color={COLORS.text} />}
-            {selectedPaymentMethod?.icon === 'credit-card' && <Feather name="credit-card" size={20} color={COLORS.text} />}
+            {selectedPaymentMethod?.icon === 'dollar-sign' && <Feather name="dollar-sign" size={SIZES.large} color={COLORS.text} />}
+            {selectedPaymentMethod?.icon === 'credit-card' && <Feather name="credit-card" size={SIZES.large} color={COLORS.text} />}
             <View>
               <Text style={styles.paymentMethodName}>{selectedPaymentMethod?.name}</Text>
               <Text style={styles.paymentMethodDesc}>{selectedPaymentMethod?.description}</Text>
             </View>
           </View>
-          <Feather name="chevron-down" size={16} color={COLORS.textMuted} style={{ transform: [{ rotate: showPaymentOptions ? '180deg' : '0deg' }] }} />
+          <Feather name="chevron-down" size={SIZES.body} color={COLORS.textMuted} style={{ transform: [{ rotate: showPaymentOptions ? '180deg' : '0deg' }] }} />
         </TouchableOpacity>
 
         {showPaymentOptions && (
@@ -169,8 +172,8 @@ export default function FareDetailsScreen() {
                   selectedPayment === method.name ? { backgroundColor: `${COLORS.primary}1A` } : {}
                 ]}
               >
-                {method.icon === 'dollar-sign' && <Feather name="dollar-sign" size={20} color={COLORS.text} />}
-                {method.icon === 'credit-card' && <Feather name="credit-card" size={20} color={COLORS.text} />}
+                {method.icon === 'dollar-sign' && <Feather name="dollar-sign" size={SIZES.large} color={COLORS.text} />}
+                {method.icon === 'credit-card' && <Feather name="credit-card" size={SIZES.large} color={COLORS.text} />}
                 <View>
                   <Text style={styles.paymentOptionName}>{method.name}</Text>
                   <Text style={styles.paymentOptionDesc}>{method.description}</Text>
@@ -241,12 +244,9 @@ const styles = StyleSheet.create({
   dividerDots: {
     alignSelf: 'center',
     marginVertical: SIZES.margin / 2,
-    color: COLORS.textMuted,
-    fontSize: SIZES.medium,
-    lineHeight: SIZES.medium,
-    height: SIZES.medium * 2,
+    // Removed old styling, now uses a Text component inside
+    height: SIZES.medium * 2, // Ensure it maintains space
     justifyContent: 'center',
-    textAlignVertical: 'center',
   },
   distanceText: {
     ...GLOBAL_STYLES.text,

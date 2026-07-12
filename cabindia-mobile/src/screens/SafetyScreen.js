@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { COLORS, GLOBAL_STYLES, SIZES } from '../styles/theme';
-import { Feather } from '@expo/vector-icons'; // Changed to Feather
+import { COLORS, GLOBAL_STYLES, SIZES, FONTS } from '../styles/theme'; // NEW: Import FONTS
+import { Feather } from '@expo/vector-icons';
 
 export default function SafetyScreen() {
   const safetyFeatures = [
@@ -19,9 +19,9 @@ export default function SafetyScreen() {
         {safetyFeatures.map((f, i) => (
           <View key={i} style={styles.card}>
             <View style={styles.iconBox}>
-               <Feather name={f.icon} size={24} color={COLORS.primary} />
+               <Feather name={f.icon} size={SIZES.extraLarge} color={COLORS.primary} /> {/* Adjusted icon size */}
             </View>
-            <View>
+            <View style={styles.cardTextContent}>
               <Text style={styles.cardTitle}>{f.title}</Text>
               <Text style={styles.cardDesc}>{f.desc}</Text>
             </View>
@@ -33,11 +33,54 @@ export default function SafetyScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { padding: 40, alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: '900', color: '#fff', textAlign: 'center' },
-  content: { padding: 20 },
-  card: { flexDirection: 'row', backgroundColor: '#111', padding: 20, borderRadius: 15, marginBottom: 15, alignItems: 'center', borderWeight: 1, borderColor: '#222' },
-  iconBox: { marginRight: 15 },
-  cardTitle: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-  cardDesc: { color: '#888', fontSize: 14 }
+  header: {
+    paddingVertical: SIZES.padding * 2, // Adjusted padding
+    alignItems: 'center',
+    backgroundColor: COLORS.cardBackground, // Added background for consistency
+    borderBottomWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  title: {
+    fontSize: SIZES.h1, // Adjusted font size
+    fontFamily: FONTS.bold, // Use theme font
+    color: COLORS.text, // Use theme color
+    textAlign: 'center',
+    paddingHorizontal: SIZES.padding, // Added padding for title
+  },
+  content: {
+    padding: SIZES.padding, // Adjusted padding
+    marginTop: SIZES.margin * 2,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.cardBackground, // Use theme color
+    padding: SIZES.padding * 1.5, // Adjusted padding
+    borderRadius: SIZES.radius * 2, // Adjusted radius
+    marginBottom: SIZES.margin, // Adjusted margin
+    alignItems: 'center',
+    borderWidth: 1, // Changed from borderWeight to borderWidth
+    borderColor: COLORS.borderColor, // Use theme color
+  },
+  iconBox: {
+    marginRight: SIZES.margin * 1.5, // Adjusted margin
+    width: SIZES.extraLarge * 1.5, // Ensure consistent icon box size
+    height: SIZES.extraLarge * 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: `${COLORS.primary}1A`, // Light primary background
+    borderRadius: SIZES.radius,
+  },
+  cardTextContent: {
+    flex: 1, // Allow text to take remaining space
+  },
+  cardTitle: {
+    color: COLORS.text, // Use theme color
+    fontFamily: FONTS.bold, // Use theme font
+    fontSize: SIZES.medium, // Adjusted font size
+    marginBottom: SIZES.tiny, // Smaller margin
+  },
+  cardDesc: {
+    color: COLORS.textMuted, // Use theme color
+    fontSize: SIZES.small, // Adjusted font size
+  },
 });
