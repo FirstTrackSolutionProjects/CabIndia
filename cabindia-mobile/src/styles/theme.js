@@ -16,18 +16,20 @@ export const COLORS = {
   error: '#ef4444', // Red-500
 };
 
+// Slightly reduced sizes for a cleaner, less "blobby" look
 export const SIZES = {
-  small: 10,
-  medium: 14,
-  large: 18,
-  extraLarge: 24,
-  h1: 32,
-  h2: 24,
-  h3: 20,
-  body: 16,
-  padding: 16,
-  margin: 10,
-  radius: 12,
+  tiny: 8,
+  small: 12,
+  medium: 13, // Adjusted from 14
+  large: 16,  // Adjusted from 18
+  extraLarge: 20, // Adjusted from 24
+  h1: 28,     // Adjusted from 32
+  h2: 22,     // Adjusted from 24
+  h3: 18,     // Adjusted from 20
+  body: 14,   // Adjusted from 16
+  padding: 14, // Adjusted from 16
+  margin: 8,   // Adjusted from 10
+  radius: 10,  // Adjusted from 12
   windowWidth: width,
   windowHeight: height,
 };
@@ -47,6 +49,7 @@ export const GLOBAL_STYLES = StyleSheet.create({
   text: {
     color: COLORS.text,
     fontFamily: FONTS.regular,
+    fontSize: SIZES.body, // Default text size
   },
   heading1: {
     fontSize: SIZES.h1,

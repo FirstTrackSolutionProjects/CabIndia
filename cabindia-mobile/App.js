@@ -7,6 +7,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, LogBox, View, Text } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Feather } from '@expo/vector-icons';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // NEW: Import useSafeAreaInsets
 
 // Ignore the InteractionManager deprecation warning
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
@@ -34,6 +36,7 @@ import SafetyScreen from './src/screens/SafetyScreen'; // NEW
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
 
 import { COLORS, SIZES } from './src/styles/theme';
+import { FONTS } from './src/styles/theme'; // NEW: Import FONTS
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -55,45 +58,49 @@ const AuthStack = () => (
 );
 
 // Main Application Tabs
-const MainAppTabs = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarActiveTintColor: COLORS.primary,
-      tabBarInactiveTintColor: COLORS.textMuted,
-      tabBarStyle: {
-        backgroundColor: COLORS.cardBackground,
-        borderTopWidth: 1,
-        borderTopColor: COLORS.borderColor,
-        height: SIZES.padding * 5, // Increased height
-        paddingBottom: SIZES.padding, // Increased padding
-        paddingTop: SIZES.padding / 2, // Added top padding for icons
-      },
-      tabBarLabelStyle: {
-        fontSize: SIZES.small, // Slightly larger font
-        fontWeight: '600',
-        marginTop: SIZES.padding / 4, // Adjusted margin to center text better
-      },
-      tabBarIcon: ({ color, size }) => {
-        let iconName;
-        if (route.name === 'HomeTab') {
-          iconName = 'map-pin';
-        } else if (route.name === 'RidesTab') {
-          iconName = 'truck'; // Changed from 'car' to 'truck' for Feather icons
-        } else if (route.name === 'ProfileTab') {
-          iconName = 'user';
-        } else if (route.name === 'MoreTab') {
-          iconName = 'menu';
-        }
-        return <Feather name={iconName} size={size} color={color} />;
-      },
-    })}>
-    <Tab.Screen name="HomeTab" component={RideBookingScreen} options={{ tabBarLabel: 'Home' }} />
-    <Tab.Screen name="RidesTab" component={RidesScreen} options={{ tabBarLabel: 'Rides' }} />
-    <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
-    <Tab.Screen name="MoreTab" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
-  </Tab.Navigator>
-);
+const MainAppTabs = () => {
+  const insets = useSafeAreaInsets(); // NEW: Get safe area insets
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarStyle: {
+          backgroundColor: COLORS.cardBackground,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.borderColor,
+          height: SIZES.padding * 4 + insets.bottom, // Adjusted height for smaller tab bar + safe area
+          paddingBottom: SIZES.tiny + insets.bottom, // Smaller padding + safe area bottom
+          paddingTop: SIZES.tiny, // Smaller top padding for icons
+        },
+        tabBarLabelStyle: {
+          fontSize: SIZES.small, // Smaller font
+          fontFamily: FONTS.semibold, // Use custom font
+        },
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+          let iconSize = SIZES.large; // Smaller icon size from new SIZES
+          if (route.name === 'HomeTab') {
+            iconName = 'map-pin';
+          } else if (route.name === 'RidesTab') {
+            iconName = 'truck';
+          } else if (route.name === 'ProfileTab') {
+            iconName = 'user';
+          } else if (route.name === 'MoreTab') {
+            iconName = 'menu';
+          }
+          return <Feather name={iconName} size={iconSize} color={color} />;
+        },
+      })}>
+      <Tab.Screen name="HomeTab" component={RideBookingScreen} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="RidesTab" component={RidesScreen} options={{ tabBarLabel: 'Rides' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
+      <Tab.Screen name="MoreTab" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
+    </Tab.Navigator>
+  );
+};
 
 // Root Stack Navigator for Main App (includes tabs and other full-screen modals/screens)
 const MainAppStack = () => (
@@ -169,9 +176,12 @@ const RootNavigator = ({ appIsReady }) => {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-      {userToken ? <MainAppStack /> : <AuthStack />}
-    </NavigationContainer>
+    // NEW: Wrap NavigationContainer with GestureHandlerRootView for Reanimated gestures
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+        {userToken ? <MainAppStack /> : <AuthStack />}
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 };
