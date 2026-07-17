@@ -165,14 +165,10 @@ const RootNavigator = ({ appIsReady }) => {
   }, [appIsReady, isLoading, splashHidden]);
 
   if (!appIsReady || isLoading) {
-    // During this phase, either the native splash is showing (if !appIsReady),
-    // or a custom loading screen is showing (if appIsReady but isLoading).
-    // The native splash screen will remain until hideAsync is explicitly called.
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <Text style={{ color: COLORS.text }}>Loading app...</Text>
-      </View>
-    );
+    // Return null while loading to keep the native splash screen visible.
+    // This prevents the "Loading app..." text from flashing before the app is ready.
+    // The native splash screen will remain until hideAsync is explicitly called in the useEffect above.
+    return null;
   }
 
   return (

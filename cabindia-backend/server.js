@@ -23,16 +23,22 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // Driver updates location
-  socket.on('update_location', (data) => {
-    // data: { rideId, latitude, longitude }
-    io.emit(`location_${data.rideId}`, data); // Emit location update to specific ride room
-  });
-
   // Join a specific ride room
   socket.on('join_ride', (rideId) => {
     socket.join(`ride_${rideId}`);
     console.log(`Socket ${socket.id} joined ride room: ride_${rideId}`);
+  });
+
+  // New: Drivers join a global drivers room to receive requests
+  socket.on('join_drivers', () => {
+    socket.join('drivers_room');
+    console.log(`Socket ${socket.id} joined drivers_room`);
+  });
+
+  // Driver updates location
+  socket.on('update_location', (data) => {
+    // data: { rideId, latitude, longitude }
+    io.to(`ride_${data.rideId}`).emit(`location_${data.rideId}`, data);
   });
 
   socket.on('disconnect', () => {
@@ -40,6 +46,8 @@ io.on('connection', (socket) => {
   });
 });
 
+// Attach io to the app so it can be used in controllers
+app.set('socketio', io);
 
 // Middleware
 app.use(cors()); // Allow cross-origin requests

@@ -5,6 +5,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 import { calculateDistance } from '../utils/locationUtils'; // NEW: Import utility for distance
+import api from '../utils/api';
 
 const rideTypes = [
   { type: "Bike", pricePerKm: 7, emoji: "🏍️" },
@@ -43,7 +44,7 @@ export default function FareDetailsScreen() {
 
   const selectedPaymentMethod = paymentOptions.find(p => p.name === selectedPayment);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!sourceAddress || !destinationAddress) {
       Alert.alert('Missing Info', 'Pickup and drop-off locations are required.');
       return;
@@ -55,20 +56,43 @@ export default function FareDetailsScreen() {
 
     const minFare = selectedRide.pricePerKm * distance;
     const maxFare = Math.ceil(minFare * 1.2); // 20% buffer
+    const estimatedFareStr = `${Math.floor(minFare)} - ${maxFare}`;
 
-    // Navigate to a ride searching/confirmation screen
-    navigation.navigate('Map', {
-      ride: selectedRide.type,
-      icon: selectedRide.emoji,
-      source: sourceAddress,
-      destination: destinationAddress,
-      pickupLat: sourceLat,
-      pickupLon: sourceLon,
-      dropoffLat: destinationLat,
-      dropoffLon: destinationLon,
-      paymentMethod: selectedPayment,
-      estimatedFare: `${Math.floor(minFare)} - ${maxFare}` // Pass calculated range
-    });
+    try {
+      // 1. Request the ride via API
+      const response = await api.post('/rides/request', {
+        pickupAddress: sourceAddress,
+        dropoffAddress: destinationAddress,
+        vehicleType: selectedRide.type,
+        pickupLat: sourceLat,
+        pickupLon: sourceLon,
+        dropoffLat: destinationLat,
+        dropoffLon: destinationLon,
+        estimatedPrice: estimatedFareStr
+      });
+
+      if (response.data.success) {
+        // 2. Navigate to Map with the newly created rideId
+        navigation.navigate('Map', {
+          rideId: response.data.rideId,
+          ride: selectedRide.type,
+          icon: selectedRide.emoji,
+          source: sourceAddress,
+          destination: destinationAddress,
+          pickupLat: sourceLat,
+          pickupLon: sourceLon,
+          dropoffLat: destinationLat,
+          dropoffLon: destinationLon,
+          paymentMethod: selectedPayment,
+          estimatedFare: estimatedFareStr
+        });
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to request ride.');
+      }
+    } catch (error) {
+      console.error('Ride Request Error:', error);
+      Alert.alert('Error', 'An error occurred while requesting your ride. Please check your connection.');
+    }
   };
 
   return (

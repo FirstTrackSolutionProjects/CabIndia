@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import api from '../utils/api';
+import { AuthContext } from '../context/AuthContext';
+import { COLORS, SIZES, FONTS } from '../styles/theme';
 
 const CaptainApplicationScreen = ({ navigation }) => {
+  const { userData } = useContext(AuthContext);
   const [vehicleModel, setVehicleModel] = useState('');
   const [plateNumber, setPlateNumber] = useState('');
+  const [vehicleType, setVehicleType] = useState('Sedan');
+  const [loading, setLoading] = useState(false);
 
-  const handleApply = () => {
-    Alert.alert("Success", "Application submitted! We will review your documents.");
-    navigation.goBack();
+  const handleApply = async () => {
+    if (!vehicleModel || !plateNumber) {
+      Alert.alert("Error", "Please fill in all vehicle details.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/apply-captain', {
+        userId: userData.id,
+        vehicleModel,
+        licensePlate: plateNumber,
+        vehicleType
+      });
+
+      if (response.data.success) {
+        Alert.alert("Success", "Application submitted! We will review your documents.");
+        navigation.goBack();
+      }
+    } catch (err) {
+      Alert.alert("Error", err.response?.data?.message || "Failed to submit application.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
