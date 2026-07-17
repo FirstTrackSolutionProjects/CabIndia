@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5, Feather } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { AuthContext } from '../context/AuthContext'; // NEW: Import AuthContext
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 
@@ -27,14 +28,13 @@ const LoginScreen = () => {
     setError(null);
     try {
       // Replace with your actual backend IP or domain
-      const backendUrl = 'http://192.168.29.203:5000/api/auth/login'; // IMPORTANT: Use your local IP for development
-      const response = await fetch(backendUrl, {
+      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: form.credential, // Assuming credential is email
+          email: form.credential,
           password: form.password,
         }),
       });

@@ -1,6 +1,6 @@
 // cabindia-mobile/src/screens/MapScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, Platform, PermissionsAndroid, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, Platform, PermissionsAndroid, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -23,7 +23,9 @@ const MapScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   // Extract rideId from route params
-  const { ride, icon, source, destination, estimatedFare, rideId } = route.params || {};
+  const { ride, icon, source, destination, estimatedFare, pickupLat, pickupLon, dropoffLat, dropoffLon } = route.params || {};
+  const [rideId, setRideId] = useState(route.params?.rideId || null);
+  const [isSearching, setIsSearching] = useState(route.params?.rideId ? true : false);
 
   const [currentLocation, setCurrentLocation] = useState(null);
   // driverLocation will be updated by socket.io
@@ -83,6 +85,7 @@ const MapScreen = () => {
 
       const locationUpdateHandler = (data) => {
         console.log(`Received location update for ride ${data.rideId}:`, data);
+        setIsSearching(false);
         if (driverAnimatedRegion) {
           driverAnimatedRegion.timing({
             latitude: data.latitude,
@@ -135,27 +138,36 @@ const MapScreen = () => {
       </TouchableOpacity>
 
       <View style={styles.bottomSheet}>
-        <View style={styles.rideInfo}>
-          <Text style={styles.rideEmoji}>{icon}</Text>
-          <View>
-            <Text style={styles.rideType}>{ride} Ride</Text>
-            <Text style={styles.fareText}>Estimated Fare: <Text style={styles.fareValue}>₹{estimatedFare}</Text></Text>
+        {isSearching ? (
+          <View style={{ alignItems: 'center', paddingVertical: SIZES.padding }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={[GLOBAL_STYLES.text, { marginTop: SIZES.margin, fontFamily: FONTS.bold }]}>Searching for nearby captains...</Text>
           </View>
-        </View>
-        <View style={styles.locationSummary}>
-          <Text style={styles.locationText} numberOfLines={1}>From: {source}</Text>
-          <Text style={styles.locationText} numberOfLines={1}>To: {destination}</Text>
-        </View>
-        <View style={styles.driverContact}>
-          <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Call Driver', 'Calling simulated driver...')}>
-            <Feather name="phone" size={20} color={COLORS.background} />
-            <Text style={styles.contactButtonText}>Call Driver</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.contactButton} onPress={() => navigation.navigate('Chat')}>
-            <Feather name="message-circle" size={20} color={COLORS.background} />
-            <Text style={styles.contactButtonText}>Chat</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <>
+            <View style={styles.rideInfo}>
+              <Text style={styles.rideEmoji}>{icon}</Text>
+              <View>
+                <Text style={styles.rideType}>{ride} Ride</Text>
+                <Text style={styles.fareText}>Estimated Fare: <Text style={styles.fareValue}>₹{estimatedFare}</Text></Text>
+              </View>
+            </View>
+            <View style={styles.locationSummary}>
+              <Text style={styles.locationText} numberOfLines={1}>From: {source}</Text>
+              <Text style={styles.locationText} numberOfLines={1}>To: {destination}</Text>
+            </View>
+            <View style={styles.driverContact}>
+              <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Call Driver', 'Calling simulated driver...')}>
+                <Feather name="phone" size={20} color={COLORS.background} />
+                <Text style={styles.contactButtonText}>Call Driver</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.contactButton} onPress={() => navigation.navigate('Chat')}>
+                <Feather name="message-circle" size={20} color={COLORS.background} />
+                <Text style={styles.contactButtonText}>Chat</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
     </View>
   );

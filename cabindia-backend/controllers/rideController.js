@@ -40,8 +40,17 @@ exports.requestRide = async (req, res) => {
             return res.status(404).json({ success: false, message: "No drivers available nearby. Please try again shortly.", rideId });
         }
 
-        // 3. In a full system, you'd use WebSockets (e.g., Socket.IO) to notify these drivers
-        // and handle driver acceptance/rejection. For this example, we'll just indicate search started.
+        // 3. Notify drivers in the area via Socket.IO
+        const io = req.app.get('socketio');
+        io.to('drivers_room').emit('new_ride_request', {
+            rideId,
+            pickupAddress,
+            dropoffAddress,
+            estimatedPrice,
+            vehicleType,
+            pickupLat,
+            pickupLon
+        });
 
         res.status(201).json({ success: true, rideId, message: "Ride requested. Searching for available drivers..." });
 

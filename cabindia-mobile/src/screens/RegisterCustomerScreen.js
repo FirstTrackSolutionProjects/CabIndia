@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 
 const RegisterCustomerScreen = ({ navigation }) => {
@@ -29,8 +30,7 @@ const RegisterCustomerScreen = ({ navigation }) => {
     setLoading(true);
     setError(null);
     try {
-      const backendUrl = 'http://192.168.29.203:5000/api/auth/register'; // IMPORTANT: Use your local IP for development
-      const response = await fetch(backendUrl, {
+      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

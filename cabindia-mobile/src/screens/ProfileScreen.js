@@ -2,10 +2,14 @@
 // Please create this new file.
 // This is a placeholder for the User Profile screen.
 
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
+import { io } from 'socket.io-client';
+import Constants from 'expo-constants';
+
+const socket = io(Constants.expoConfig.extra.apiUrl.replace('/api', ''), { transports: ['websocket'] });
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 
@@ -37,6 +41,26 @@ export default function ProfileScreen() {
   const handleApplyAsCaptain = () => {
     navigation.navigate('CaptainApplication');
   };
+
+  useEffect(() => {
+    // For testing: Automatically join drivers room when profile is viewed
+    socket.emit('join_drivers');
+
+    socket.on('new_ride_request', (data) => {
+      Alert.alert(
+        "New Ride Request!",
+        `Pickup: ${data.pickupAddress}\nPrice: ${data.estimatedPrice}`,
+        [
+          { text: "Ignore", style: "cancel" },
+          { text: "Accept", onPress: () => Alert.alert("Accepted", "You accepted ride " + data.rideId) }
+        ]
+      );
+    });
+
+    return () => {
+      socket.off('new_ride_request');
+    };
+  }, []);
 
   if (!userData) {
     return (
