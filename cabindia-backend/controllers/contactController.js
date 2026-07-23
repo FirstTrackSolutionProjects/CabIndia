@@ -8,16 +8,16 @@ require('dotenv').config();
 exports.submitContact = async (req, res) => {
   const { name, email, mobile, message } = req.body;
 
-  if (!name || !email || !message) {
-    return res.status(400).json({ message: 'Name, Email, and Message are required', success: false });
+  if (!name || !email || !mobile || !message) {
+    return res.status(400).json({ message: 'Name, Email, Mobile, and Message are required', success: false });
   }
 
   try {
     // Save to database
-    await db.execute(
-      'INSERT INTO contact_messages (name, email, mobile, message) VALUES (?, ?, ?, ?)',
-      [name, email, mobile || null, message]
-    );
+    // await db.execute(
+    //   'INSERT INTO contact_messages (name, email, mobile, message) VALUES (?, ?, ?, ?)',
+    //   [name, email, mobile || null, message]
+    // );
 
     // Send email
     let transporter = nodemailer.createTransport({

@@ -54,9 +54,9 @@ app.use(cors()); // Allow cross-origin requests
 app.use(bodyParser.json()); // To parse JSON request bodies
 
 // Define API routes
-app.use('/api/auth', authRoutes);
+// app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
-app.use('/api/rides', rideRoutes);
+// app.use('/api/rides', rideRoutes);
 
 // Simple test route
 app.get('/', (req, res) => {
