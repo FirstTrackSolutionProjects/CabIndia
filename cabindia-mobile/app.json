@@ -48,7 +48,7 @@
       "eas": {
         "projectId": "eeda1796-b19d-4827-b604-9cf544dc54c5"
       },
-      "apiUrl": "http://192.168.29.203:5000/api"
+      "apiUrl": "https://cabindia-mobile.onrender.com/api"
     },
     "plugins": [
       "expo-splash-screen"
