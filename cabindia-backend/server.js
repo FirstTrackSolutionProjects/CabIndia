@@ -1,25 +1,26 @@
 // cabindia-backend/server.js
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser'); // Already in package.json
+const bodyParser = require('body-parser');
 require('dotenv').config();
-const http = require('http'); // New: Import http module
-const { Server } = require('socket.io'); // New: Import Server from socket.io
+const http = require('http');
+const { Server } = require('socket.io');
 
 const authRoutes = require('./routes/authRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const rideRoutes = require('./routes/rideRoutes');
-const app = express();
-const server = http.createServer(app); // New: Create HTTP server using express app
 
-// New: Initialize Socket.IO
+const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: "*" // Allow all origins for WebSocket connections
+    origin: '*'
   }
 });
 
-// New: Socket.IO connection handling
+// Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -29,7 +30,7 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined ride room: ride_${rideId}`);
   });
 
-  // New: Drivers join a global drivers room to receive requests
+  // Drivers join a global drivers room to receive requests
   socket.on('join_drivers', () => {
     socket.join('drivers_room');
     console.log(`Socket ${socket.id} joined drivers_room`);
@@ -37,7 +38,6 @@ io.on('connection', (socket) => {
 
   // Driver updates location
   socket.on('update_location', (data) => {
-    // data: { rideId, latitude, longitude }
     io.to(`ride_${data.rideId}`).emit(`location_${data.rideId}`, data);
   });
 
@@ -46,17 +46,17 @@ io.on('connection', (socket) => {
   });
 });
 
-// Attach io to the app so it can be used in controllers
+// Attach io to the app
 app.set('socketio', io);
 
 // Middleware
-app.use(cors()); // Allow cross-origin requests
-app.use(bodyParser.json()); // To parse JSON request bodies
+app.use(cors());
+app.use(bodyParser.json());
 
 // Define API routes
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
-// app.use('/api/rides', rideRoutes);
+app.use('/api/rides', rideRoutes);
 
 // Simple test route
 app.get('/', (req, res) => {
@@ -65,7 +65,6 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Change app.listen to server.listen for Socket.IO integration
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

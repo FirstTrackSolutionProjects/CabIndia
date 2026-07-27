@@ -1,3 +1,4 @@
+// cabindia-mobile/src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.removeItem('userData');
   };
 
-  const checkLoginStatus = async () => { // Renamed isLoggedIn to checkLoginStatus for clarity
+  const checkLoginStatus = async () => {
     try {
       let token = await AsyncStorage.getItem('userToken');
       let data = await AsyncStorage.getItem('userData');
@@ -33,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       console.log(`checkLoginStatus error: ${e}`);
     } finally {
-      setIsLoading(false); // Ensure loading state is always updated
+      setIsLoading(false);
     }
   };
 
