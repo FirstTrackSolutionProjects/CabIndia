@@ -1,5 +1,5 @@
 // cabindia-mobile/src/screens/LoginScreen.js
-import React, { useState, useContext } from 'react'; // Added useContext
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5, Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { AuthContext } from '../context/AuthContext'; // NEW: Import AuthContext
+import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-  const { login } = useContext(AuthContext); // NEW: Get login function from context
+  const { login } = useContext(AuthContext);
   const [showPwd, setShowPwd] = useState(false);
   const [form, setForm] = useState({ credential: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -27,7 +27,6 @@ const LoginScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      // Replace with your actual backend IP or domain
       const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
@@ -43,9 +42,7 @@ const LoginScreen = () => {
 
       if (response.ok) {
         Alert.alert('Success', data.message);
-        // Use login function from AuthContext to store token and user data
         await login(data.token, data.user);
-        // Navigation is now handled by RootNavigator based on userToken state change
       } else {
         setError(data.message || 'Login failed');
         Alert.alert('Login Failed', data.message || 'Please try again.');
@@ -62,7 +59,7 @@ const LoginScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <View style={styles.yellowAccentTop} /> {/* Top accent */}
+        <View style={styles.yellowAccentTop} />
         <View style={styles.cardContent}>
           <View style={styles.header}>
             <View style={styles.iconContainer}>
@@ -77,7 +74,6 @@ const LoginScreen = () => {
 
           <View style={styles.divider} />
 
-          {/* Form */}
           <View style={styles.form}>
             <Text style={styles.label}>Email or Phone Number <Text style={styles.required}>*</Text></Text>
             <TextInput
@@ -185,9 +181,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: SIZES.radius,
-    backgroundColor: `${COLORS.primary}1A`, // Primary with 10% opacity
+    backgroundColor: `${COLORS.primary}1A`,
     borderWidth: 1,
-    borderColor: `${COLORS.primary}40`, // Primary with 25% opacity
+    borderColor: `${COLORS.primary}40`,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SIZES.margin,
@@ -196,7 +192,7 @@ const styles = StyleSheet.create({
     fontSize: SIZES.small - 1,
     fontFamily: FONTS.bold,
     letterSpacing: 2,
-    color: `${COLORS.primary}99`, // Primary with 60% opacity
+    color: `${COLORS.primary}99`,
     textTransform: 'uppercase',
     marginBottom: SIZES.margin / 2,
   },
