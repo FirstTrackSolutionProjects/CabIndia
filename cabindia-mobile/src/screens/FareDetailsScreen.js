@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView 
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
-import { calculateDistance } from '../utils/locationUtils'; // NEW: Import utility for distance
+import { calculateDistance } from '../utils/locationUtils';
 import api from '../utils/api';
 
 const rideTypes = [
@@ -268,8 +268,7 @@ const styles = StyleSheet.create({
   dividerDots: {
     alignSelf: 'center',
     marginVertical: SIZES.margin / 2,
-    // Removed old styling, now uses a Text component inside
-    height: SIZES.medium * 2, // Ensure it maintains space
+    height: SIZES.medium * 2,
     justifyContent: 'center',
   },
   distanceText: {

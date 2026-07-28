@@ -1,14 +1,14 @@
 // cabindia-mobile/App.js
-import 'react-native-gesture-handler'; // Required for react-navigation
+import 'react-native-gesture-handler';
 import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, LogBox, View, Text } from 'react-native';
+import { StatusBar, LogBox, View, Text, Image } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Feather } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // NEW: Import useSafeAreaInsets
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Ignore the InteractionManager deprecation warning
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
@@ -25,18 +25,17 @@ import RegisterCustomerScreen from './src/screens/RegisterCustomerScreen';
 import CaptainApplicationScreen from './src/screens/CaptainApplicationScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import FareDetailsScreen from './src/screens/FareDetailsScreen';
-import MapScreen from './src/screens/MapScreen'; // For active ride tracking
-// Screens for Tabs
+import MapScreen from './src/screens/MapScreen';
 import RideBookingScreen from './src/screens/RideBookingScreen';
 import RidesScreen from './src/screens/RidesScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MoreScreen from './src/screens/MoreScreen';
-import PolicyScreen from './src/screens/PolicyScreen'; // NEW
-import SafetyScreen from './src/screens/SafetyScreen'; // NEW
+import PolicyScreen from './src/screens/PolicyScreen';
+import SafetyScreen from './src/screens/SafetyScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
 
 import { COLORS, SIZES } from './src/styles/theme';
-import { FONTS } from './src/styles/theme'; // NEW: Import FONTS
+import { FONTS } from './src/styles/theme';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -52,14 +51,13 @@ const AuthStack = () => (
     <Stack.Screen name="Welcome" component={WelcomeScreen} />
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="RegisterCustomer" component={RegisterCustomerScreen} />
-    {/* CaptainApplication removed from AuthStack as it's a post-login flow */}
     <Stack.Screen name="Chat" component={ChatScreen} />
   </Stack.Navigator>
 );
 
 // Main Application Tabs
 const MainAppTabs = () => {
-  const insets = useSafeAreaInsets(); // NEW: Get safe area insets
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -71,17 +69,17 @@ const MainAppTabs = () => {
           backgroundColor: COLORS.cardBackground,
           borderTopWidth: 1,
           borderTopColor: COLORS.borderColor,
-          height: SIZES.padding * 4 + insets.bottom, // Adjusted height for smaller tab bar + safe area
-          paddingBottom: SIZES.tiny + insets.bottom, // Smaller padding + safe area bottom
-          paddingTop: SIZES.tiny, // Smaller top padding for icons
+          height: SIZES.padding * 4 + insets.bottom,
+          paddingBottom: SIZES.tiny + insets.bottom,
+          paddingTop: SIZES.tiny,
         },
         tabBarLabelStyle: {
-          fontSize: SIZES.small, // Smaller font
-          fontFamily: FONTS.semibold, // Use custom font
+          fontSize: SIZES.small,
+          fontFamily: FONTS.semibold,
         },
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          let iconSize = SIZES.large; // Smaller icon size from new SIZES
+          let iconSize = SIZES.large;
           if (route.name === 'HomeTab') {
             iconName = 'map-pin';
           } else if (route.name === 'RidesTab') {
@@ -102,7 +100,7 @@ const MainAppTabs = () => {
   );
 };
 
-// Root Stack Navigator for Main App (includes tabs and other full-screen modals/screens)
+// Root Stack Navigator for Main App
 const MainAppStack = () => (
   <Stack.Navigator
     screenOptions={{
@@ -119,17 +117,16 @@ const MainAppStack = () => (
   </Stack.Navigator>
 );
 
-
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulate a longer loading process for testing splash screen
-        await new Promise(resolve => setTimeout(resolve, 3000)); 
+        // Load any resources here
+        await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (e) {
-        console.error('App.js: Error during app preparation in prepare():', e);
+        console.error('App.js: Error during app preparation:', e);
       } finally {
         setAppIsReady(true);
       }
@@ -137,7 +134,6 @@ export default function App() {
     prepare();
   }, []);
 
-  // Use AuthProvider to manage authentication state globally
   return (
     <AuthProvider>
       <RootNavigator appIsReady={appIsReady} />
@@ -145,18 +141,15 @@ export default function App() {
   );
 }
 
-// Separate component for Root Navigation to use AuthContext
 const RootNavigator = ({ appIsReady }) => {
   const { userToken, isLoading } = useContext(AuthContext);
   const [splashHidden, setSplashHidden] = useState(false);
 
-  // Effect to hide splash screen once everything is ready
   useEffect(() => {
-    // Only hide splash screen once App's initial preparation AND AuthContext's loading are complete
     if (appIsReady && !isLoading && !splashHidden) {
       async function hideSplash() {
         await SplashScreen.hideAsync().catch(err => {
-          console.error('RootNavigator: SplashScreen.hideAsync failed with error:', err);
+          console.error('RootNavigator: SplashScreen.hideAsync failed:', err);
         });
         setSplashHidden(true);
       }
@@ -165,14 +158,17 @@ const RootNavigator = ({ appIsReady }) => {
   }, [appIsReady, isLoading, splashHidden]);
 
   if (!appIsReady || isLoading) {
-    // Return null while loading to keep the native splash screen visible.
-    // This prevents the "Loading app..." text from flashing before the app is ready.
-    // The native splash screen will remain until hideAsync is explicitly called in the useEffect above.
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center' }}>
+        <Image 
+          source={require('./assets/splash.png')} 
+          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+        />
+      </View>
+    );
   }
 
   return (
-    // NEW: Wrap NavigationContainer with GestureHandlerRootView for Reanimated gestures
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
         <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />

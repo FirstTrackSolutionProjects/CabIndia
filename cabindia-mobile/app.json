@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "cabindia-mobile",
+    "name": "CabIndia",
     "slug": "cabindia-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#0a0a0a"
     },
     "ios": {
       "bundleIdentifier": "com.cabindia.app",
@@ -48,10 +48,12 @@
       "eas": {
         "projectId": "eeda1796-b19d-4827-b604-9cf544dc54c5"
       },
-      "apiUrl": "https://cabindia-mobile.onrender.com/api"
+      "apiUrl": "https://cabindia-mobile.onrender.com"
     },
     "plugins": [
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-font",
+      "expo-asset"
     ]
   }
 }

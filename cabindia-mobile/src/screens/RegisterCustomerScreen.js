@@ -1,3 +1,4 @@
+// cabindia-mobile/src/screens/RegisterCustomerScreen.js
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
@@ -7,14 +8,13 @@ import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 const RegisterCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState(''); // NEW: Mobile field
+  const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEW: Confirm password
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
-  const [showConfirmPwd, setShowConfirmPwd] = useState(false); // NEW: Show confirm password
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
 
   const handleRegister = async () => {
     // Basic validation
@@ -30,7 +30,8 @@ const RegisterCustomerScreen = ({ navigation }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/auth/register`, {
+      // Note: /api is added here because apiUrl doesn't include it
+      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
