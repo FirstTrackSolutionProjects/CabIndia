@@ -27,7 +27,8 @@ const LoginScreen = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/auth/login`, {
+      // Note: /api is added here because apiUrl doesn't include it
+      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
