@@ -79,7 +79,8 @@ const MainAppTabs = () => {
         },
         tabBarIcon: ({ color, size }) => {
           let iconName;
-          let iconSize = SIZES.large;
+          // Use the size parameter to properly size the icon
+          const iconSize = size || SIZES.large;
           if (route.name === 'HomeTab') {
             iconName = 'map-pin';
           } else if (route.name === 'RidesTab') {
@@ -88,6 +89,10 @@ const MainAppTabs = () => {
             iconName = 'user';
           } else if (route.name === 'MoreTab') {
             iconName = 'menu';
+          }
+          // Ensure iconName is always defined
+          if (!iconName) {
+            iconName = 'circle';
           }
           return <Feather name={iconName} size={iconSize} color={color} />;
         },
