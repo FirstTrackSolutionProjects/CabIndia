@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CabIndia",
-    "slug": "cabindia-mobile",
+    "slug": "cabindia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -46,7 +46,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "eeda1796-b19d-4827-b604-9cf544dc54c5"
+        "projectId": "d356b644-02d4-49e6-8eeb-f50e060886c2"
       },
       "apiUrl": "https://cabindia-mobile.onrender.com"
     },
@@ -54,6 +54,7 @@
       "expo-splash-screen",
       "expo-font",
       "expo-asset"
-    ]
+    ],
+    "owner": "soul2000s"
   }
 }
