@@ -1,7 +1,7 @@
 // cabindia-mobile/src/screens/MapScreen.js
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -9,8 +9,10 @@ import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 
-// Replace with your backend URL
-const BACKEND_URL = 'http://192.168.29.203:5000';
+// Replace with your backend URL - use environment variable for production
+const BACKEND_URL = 'https://cabindia-mobile.onrender.com';
+// const BACKEND_URL = 'http://192.168.29.203:5000'; // For local development
+
 const socket = io(BACKEND_URL, {
   transports: ['websocket'],
   forceNew: true
@@ -113,7 +115,11 @@ const MapScreen = () => {
             coordinate={driverAnimatedRegion}
             anchor={{ x: 0.5, y: 0.5 }}
           >
-            <Image source={require('../../assets/car_icon.png')} style={styles.carIcon} />
+            <Image 
+              source={require('../../assets/car_icon.png')} 
+              style={styles.carIcon}
+              defaultSource={require('../../assets/car_icon.png')}
+            />
           </Marker.Animated>
         )}
       </MapView>
@@ -131,15 +137,15 @@ const MapScreen = () => {
         ) : (
           <>
             <View style={styles.rideInfo}>
-              <Text style={styles.rideEmoji}>{icon}</Text>
+              <Text style={styles.rideEmoji}>{icon || '🚗'}</Text>
               <View>
-                <Text style={styles.rideType}>{ride} Ride</Text>
-                <Text style={styles.fareText}>Estimated Fare: <Text style={styles.fareValue}>₹{estimatedFare}</Text></Text>
+                <Text style={styles.rideType}>{ride || 'Cab'} Ride</Text>
+                <Text style={styles.fareText}>Estimated Fare: <Text style={styles.fareValue}>₹{estimatedFare || '0'}</Text></Text>
               </View>
             </View>
             <View style={styles.locationSummary}>
-              <Text style={styles.locationText} numberOfLines={1}>From: {source}</Text>
-              <Text style={styles.locationText} numberOfLines={1}>To: {destination}</Text>
+              <Text style={styles.locationText} numberOfLines={1}>From: {source || 'Pickup'}</Text>
+              <Text style={styles.locationText} numberOfLines={1}>To: {destination || 'Dropoff'}</Text>
             </View>
             <View style={styles.driverContact}>
               <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Call Driver', 'Calling simulated driver...')}>

@@ -40,13 +40,3 @@ yarn-error.*
 /ios
 /android
 .env*
-
-# Don't ignore assets
-!assets/
-!assets/icon.png
-!assets/splash.png
-!assets/android-icon-foreground.png
-!assets/android-icon-background.png
-!assets/android-icon-monochrome.png
-!assets/favicon.png
-!assets/car_icon.png
