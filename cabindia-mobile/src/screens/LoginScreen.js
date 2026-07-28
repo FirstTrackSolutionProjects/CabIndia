@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome5, Feather } from '@expo/vector-icons';
-import Constants from 'expo-constants';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import api from '../utils/api';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -24,34 +24,34 @@ const LoginScreen = () => {
   const [error, setError] = useState(null);
 
   const handleSubmit = async () => {
+    if (!form.credential || !form.password) {
+      Alert.alert('Error', 'Please enter email and password.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      // Note: /api is added here because apiUrl doesn't include it
-      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: form.credential,
-          password: form.password,
-        }),
+      console.log('Attempting login with:', form.credential);
+      const response = await api.post('/api/auth/login', {
+        email: form.credential,
+        password: form.password,
       });
 
-      const data = await response.json();
+      console.log('Login response:', response.data);
 
-      if (response.ok) {
-        Alert.alert('Success', data.message);
-        await login(data.token, data.user);
+      if (response.data.success) {
+        Alert.alert('Success', response.data.message);
+        await login(response.data.token, response.data.user);
       } else {
-        setError(data.message || 'Login failed');
-        Alert.alert('Login Failed', data.message || 'Please try again.');
+        setError(response.data.message || 'Login failed');
+        Alert.alert('Login Failed', response.data.message || 'Please try again.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      Alert.alert('Error', 'Could not connect to the server.');
-      console.error(err);
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.message || 'Network error. Please try again.';
+      setError(errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }

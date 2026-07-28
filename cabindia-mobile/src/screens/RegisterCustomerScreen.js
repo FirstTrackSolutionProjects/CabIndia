@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
-import Constants from 'expo-constants';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import api from '../utils/api';
 
 const RegisterCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -17,7 +17,6 @@ const RegisterCustomerScreen = ({ navigation }) => {
   const [error, setError] = useState(null);
 
   const handleRegister = async () => {
-    // Basic validation
     if (!name || !email || !mobile || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
@@ -30,34 +29,29 @@ const RegisterCustomerScreen = ({ navigation }) => {
     setLoading(true);
     setError(null);
     try {
-      // Note: /api is added here because apiUrl doesn't include it
-      const response = await fetch(`${Constants.expoConfig.extra.apiUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          mobile,
-          password,
-          confirmPassword,
-        }),
+      console.log('Attempting registration for:', email);
+      const response = await api.post('/api/auth/register', {
+        name,
+        email,
+        mobile,
+        password,
+        confirmPassword,
       });
 
-      const data = await response.json();
+      console.log('Registration response:', response.data);
 
-      if (response.ok) {
-        Alert.alert('Success', data.message);
+      if (response.data.success) {
+        Alert.alert('Success', response.data.message);
         navigation.navigate('Login');
       } else {
-        setError(data.message || 'Registration failed');
-        Alert.alert('Registration Failed', data.message || 'Please try again.');
+        setError(response.data.message || 'Registration failed');
+        Alert.alert('Registration Failed', response.data.message || 'Please try again.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      Alert.alert('Error', 'Could not connect to the server.');
-      console.error(err);
+      console.error('Registration error:', err);
+      const errorMessage = err.response?.data?.message || 'Network error. Please try again.';
+      setError(errorMessage);
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
