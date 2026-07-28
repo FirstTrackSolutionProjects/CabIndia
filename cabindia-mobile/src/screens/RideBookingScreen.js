@@ -1,27 +1,29 @@
 // cabindia-mobile/src/screens/RideBookingScreen.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform, Dimensions, ScrollView, ActivityIndicator } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native'; // NEW: useFocusEffect
+import { 
+  View, Text, StyleSheet, TouchableOpacity, TextInput, 
+  Alert, KeyboardAvoidingView, Platform, Dimensions, 
+  ScrollView, ActivityIndicator, Image 
+} from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
-import { PanGestureHandler, GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler'; // NEW: Gesture imports
+import { Ionicons } from '@expo/vector-icons';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedGestureHandler,
   withSpring,
-  runOnJS,
   interpolate,
   Extrapolate,
-} from 'react-native-reanimated'; // NEW: Reanimated imports
+} from 'react-native-reanimated';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.25; // Adjusted to show more content when collapsed
-const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.7; // Max height for inputs
-const BOTTOM_SHEET_DRAG_AREA_HEIGHT = SIZES.padding * 3; // Height for the drag handle area
+const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.28;
+const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.65;
+const BOTTOM_SHEET_DRAG_AREA_HEIGHT = 40;
 
 export default function RideBookingScreen() {
   const navigation = useNavigation();
@@ -30,43 +32,37 @@ export default function RideBookingScreen() {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [sourceCoords, setSourceCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
-  const [loadingGeocode, setLoadingGeocode] = useState(false); // NEW: loading state for geocoding
+  const [loadingGeocode, setLoadingGeocode] = useState(false);
   const mapRef = useRef(null);
 
-  // Reanimated shared value for bottom sheet's current height (from the bottom of the screen)
   const sheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
   const startSheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
 
-  // Initial animation on mount to open partially
   useEffect(() => {
-    // Initialize to the minimum height
-    sheetHeight.value = withSpring(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, { damping: 15, stiffness: 100 });
+    sheetHeight.value = withSpring(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, { 
+      damping: 15, 
+      stiffness: 100 
+    });
   }, []);
 
-  // Set current location on mount or when screen is focused
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission denied', 'Location access is needed to show your position on the map and find rides.');
+          Alert.alert('Permission denied', 'Location access is needed for rides.');
           return;
         }
-        let location = await Location.getCurrentPositionAsync({});
-        setCurrentLocation({
+        const location = await Location.getCurrentPositionAsync({});
+        const region = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
           latitudeDelta: 0.02,
           longitudeDelta: 0.02,
-        });
-
+        };
+        setCurrentLocation(region);
         if (mapRef.current) {
-          mapRef.current.animateToRegion({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-            latitudeDelta: 0.02,
-            longitudeDelta: 0.02,
-          });
+          mapRef.current.animateToRegion(region);
         }
       })();
     }, [])
@@ -99,7 +95,7 @@ export default function RideBookingScreen() {
     setLoadingGeocode(false);
 
     if (!sCoords || !dCoords) {
-      Alert.alert('Location Error', 'Could not find coordinates for one or both locations. Please try again or refine your input.');
+      Alert.alert('Location Error', 'Could not find coordinates. Please try again.');
       return;
     }
 
@@ -122,44 +118,36 @@ export default function RideBookingScreen() {
     })
     .onUpdate((event) => {
       let newHeight = startSheetHeight.value - event.translationY;
-      newHeight = Math.min(Math.max(newHeight, BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT), BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
+      newHeight = Math.min(
+        Math.max(newHeight, BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT),
+        BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT
+      );
       sheetHeight.value = newHeight;
     })
     .onEnd((event) => {
       const velocity = event.velocityY;
       let targetHeight;
-
-      if (velocity < -500) { // Swiping up fast
-        targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT; // Fully expanded
-      } else if (velocity > 500) { // Swiping down fast
-        targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT; // Fully collapsed
+      if (velocity < -500) {
+        targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+      } else if (velocity > 500) {
+        targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
       } else if (sheetHeight.value > (BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_MIN_HEIGHT + 2 * BOTTOM_SHEET_DRAG_AREA_HEIGHT) / 2) {
-        targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT; // Snap to expanded
+        targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
       } else {
-        targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT; // Snap to collapsed
+        targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
       }
-
       sheetHeight.value = withSpring(targetHeight, { damping: 15, stiffness: 100 });
     });
 
-  const animatedBottomSheetStyle = useAnimatedStyle(() => {
-    return {
-      height: sheetHeight.value,
-      // The 'bottom: 0' in styles.bottomSheet, combined with 'height', correctly positions it.
-      // This transform was pushing it off-screen.
-      // transform: [{ translateY: screenHeight - sheetHeight.value }],
-    };
-  });
+  const animatedBottomSheetStyle = useAnimatedStyle(() => ({
+    height: sheetHeight.value,
+  }));
 
-  const animatedMapStyle = useAnimatedStyle(() => {
-    return {
-      height: screenHeight - sheetHeight.value,
-    };
-  });
+  const animatedMapStyle = useAnimatedStyle(() => ({
+    height: screenHeight - sheetHeight.value,
+  }));
 
   const animatedChevronRotation = useAnimatedStyle(() => {
-    // If sheet is at min height, chevron points up (0 deg rotation)
-    // If sheet is at max height, chevron points down (180 deg rotation)
     const rotate = interpolate(
       sheetHeight.value,
       [BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT],
@@ -175,7 +163,6 @@ export default function RideBookingScreen() {
     <KeyboardAvoidingView
       style={GLOBAL_STYLES.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0} // Keyboard handled by inner ScrollView, offset only if necessary
     >
       <Animated.View style={[styles.mapContainer, animatedMapStyle]}>
         <MapView
@@ -208,14 +195,14 @@ export default function RideBookingScreen() {
             <Marker
               coordinate={sourceCoords}
               title="Pickup"
-              pinColor={COLORS.primary}
+              pinColor="#4CAF50"
             />
           )}
           {destinationCoords && (
             <Marker
               coordinate={destinationCoords}
               title="Drop-off"
-              pinColor={COLORS.secondary}
+              pinColor="#f44336"
             />
           )}
         </MapView>
@@ -226,44 +213,92 @@ export default function RideBookingScreen() {
           <View style={styles.dragHandleContainer}>
             <View style={styles.dragHandleBar} />
             <Animated.View style={animatedChevronRotation}>
-              <Feather name="chevron-up" size={SIZES.large} color={COLORS.textMuted} />
+              <Ionicons name="chevron-up" size={20} color={COLORS.textMuted} />
             </Animated.View>
           </View>
         </GestureDetector>
 
-        <ScrollView contentContainerStyle={styles.bottomSheetContent} keyboardShouldPersistTaps="handled">
-          <Text style={styles.sheetTitle}>Where are you going?</Text>
-          <View style={styles.inputGroup}>
-            <Feather name="map-pin" size={SIZES.large} color={COLORS.primary} style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Pickup Location"
-              placeholderTextColor={COLORS.textMuted}
-              value={source}
-              onChangeText={setSource}
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Feather name="flag" size={SIZES.large} color={COLORS.secondary} style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Drop-off Location"
-              placeholderTextColor={COLORS.textMuted}
-              value={destination}
-              onChangeText={setDestination}
-            />
+        <ScrollView 
+          contentContainerStyle={styles.bottomSheetContent} 
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.headerSection}>
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../../assets/icon.png')} 
+                style={styles.logoIcon}
+                defaultSource={require('../../assets/icon.png')}
+              />
+              <Text style={styles.brandText}>CabIndia</Text>
+            </View>
+            <Text style={styles.sheetTitle}>Where are you going?</Text>
           </View>
 
-          <TouchableOpacity style={styles.findRideButton} onPress={handleGetFare} disabled={loadingGeocode}>
+          <View style={styles.inputContainer}>
+            <View style={styles.inputGroup}>
+              <View style={styles.inputIconContainer}>
+                <Ionicons name="location" size={20} color={COLORS.primary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Pickup Location"
+                placeholderTextColor={COLORS.textMuted}
+                value={source}
+                onChangeText={setSource}
+              />
+            </View>
+
+            <View style={styles.inputDivider}>
+              <View style={styles.dividerLine} />
+              <View style={styles.dividerDot} />
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.inputIconContainer}>
+                <Ionicons name="flag" size={20} color={COLORS.secondary} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Drop-off Location"
+                placeholderTextColor={COLORS.textMuted}
+                value={destination}
+                onChangeText={setDestination}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.findRideButton} 
+            onPress={handleGetFare} 
+            disabled={loadingGeocode}
+            activeOpacity={0.8}
+          >
             {loadingGeocode ? (
-              <ActivityIndicator color={COLORS.background} />
+              <ActivityIndicator color={COLORS.background} size="small" />
             ) : (
               <>
                 <Text style={styles.findRideButtonText}>Find a Ride</Text>
-                <Feather name="arrow-right" size={SIZES.medium} color={COLORS.background} />
+                <Ionicons name="arrow-forward" size={20} color={COLORS.background} />
               </>
             )}
           </TouchableOpacity>
+
+          <View style={styles.quickActions}>
+            <TouchableOpacity style={styles.quickAction}>
+              <Ionicons name="car" size={24} color={COLORS.primary} />
+              <Text style={styles.quickActionText}>Ride Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction}>
+              <Ionicons name="calendar" size={24} color={COLORS.primary} />
+              <Text style={styles.quickActionText}>Schedule</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction}>
+              <Ionicons name="business" size={24} color={COLORS.primary} />
+              <Text style={styles.quickActionText}>Corporate</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -272,7 +307,6 @@ export default function RideBookingScreen() {
 
 const styles = StyleSheet.create({
   mapContainer: {
-    // flex: 1, // Removed flex, height is controlled by animatedMapStyle
     width: '100%',
   },
   map: {
@@ -285,75 +319,131 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: COLORS.cardBackground,
-    borderTopLeftRadius: SIZES.radius * 2,
-    borderTopRightRadius: SIZES.radius * 2,
-    // paddingTop is handled by content + drag handle
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 1,
     borderColor: COLORS.borderColor,
-    ...GLOBAL_STYLES.shadow,
-    // height and transform will be set dynamically by animatedBottomSheetStyle
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
   },
   bottomSheetContent: {
-    paddingHorizontal: SIZES.padding * 2,
-    paddingTop: SIZES.padding, // Space after drag handle
-    paddingBottom: SIZES.padding * 5, // Ensures content and button are above the tab bar
-    flexGrow: 1, // Allow content to grow to fill height
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 30,
   },
   dragHandleContainer: {
     alignSelf: 'center',
-    paddingVertical: SIZES.margin,
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     height: BOTTOM_SHEET_DRAG_AREA_HEIGHT,
-    flexDirection: 'row', // Align icon next to bar
-    gap: SIZES.margin, // Space between bar and icon
+    flexDirection: 'row',
+    gap: 12,
   },
   dragHandleBar: {
     width: 60,
-    height: 6,
+    height: 5,
     backgroundColor: COLORS.borderColor,
     borderRadius: 3,
   },
+  headerSection: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  logoIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  brandText: {
+    color: COLORS.primary,
+    fontSize: 20,
+    fontFamily: FONTS.bold,
+  },
   sheetTitle: {
-    ...GLOBAL_STYLES.heading1,
-    fontSize: SIZES.h2,
-    marginBottom: SIZES.margin * 3,
-    textAlign: 'center',
+    fontSize: 22,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+  },
+  inputContainer: {
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.inputBackground,
-    borderRadius: SIZES.radius,
-    borderWidth: 1,
-    borderColor: COLORS.borderColor,
-    marginBottom: SIZES.margin * 2,
-    paddingHorizontal: SIZES.padding,
-    height: 48, // Slightly reduced input height
+    height: 50,
   },
-  icon: {
-    marginRight: SIZES.margin,
+  inputIconContainer: {
+    width: 32,
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     color: COLORS.text,
-    fontSize: SIZES.body,
+    fontSize: 15,
     fontFamily: FONTS.regular,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  inputDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 20,
+    paddingHorizontal: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.borderColor,
+  },
+  dividerDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary,
+    marginHorizontal: 8,
   },
   findRideButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    borderRadius: SIZES.radius,
-    paddingVertical: SIZES.padding, // Reduced padding
-    marginTop: SIZES.margin * 2,
-    gap: SIZES.margin / 2,
+    borderRadius: 12,
+    paddingVertical: 16,
+    gap: 10,
+    marginBottom: 24,
   },
   findRideButtonText: {
     color: COLORS.background,
     fontFamily: FONTS.bold,
-    fontSize: SIZES.medium,
+    fontSize: 16,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+  },
+  quickAction: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickActionText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontFamily: FONTS.medium,
   },
 });
