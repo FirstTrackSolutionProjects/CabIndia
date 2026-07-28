@@ -1,7 +1,6 @@
 // cabindia-mobile/src/screens/WelcomeScreen.js
-// cabindia-mobile/src/screens/WelcomeScreen.js
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 
@@ -9,6 +8,12 @@ export default function WelcomeScreen({ navigation }) {
   return (
     <View style={GLOBAL_STYLES.container}>
       <View style={styles.hero}>
+        {/* Logo - try loading from assets, fallback to text if missing */}
+        <Image 
+          source={require('../../assets/icon.png')} 
+          style={styles.logo}
+          defaultSource={require('../../assets/icon.png')}
+        />
         <Text style={styles.title}>GET YOUR <Text style={styles.highlight}>RIDE</Text> NOW</Text>
         <Text style={styles.subtitle}>AUTO • BIKES • CARS</Text>
 
@@ -35,6 +40,12 @@ export default function WelcomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   hero: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SIZES.padding * 2 },
+  logo: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: SIZES.margin * 3,
+  },
   title: { color: COLORS.text, fontSize: SIZES.h1, fontFamily: FONTS.bold, textAlign: 'center' },
   highlight: { color: COLORS.primary, fontStyle: 'italic' },
   subtitle: { color: COLORS.textMuted, marginTop: SIZES.margin, letterSpacing: 2, fontSize: SIZES.small },
