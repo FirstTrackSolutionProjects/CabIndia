@@ -6,6 +6,7 @@ require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
 
+// Import routes
 const authRoutes = require('./routes/authRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const rideRoutes = require('./routes/rideRoutes');
@@ -13,30 +14,47 @@ const rideRoutes = require('./routes/rideRoutes');
 const app = express();
 const server = http.createServer(app);
 
+// Configure CORS
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: '*'
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true,
   }
 });
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-
-  // Join a specific ride room
+  
   socket.on('join_ride', (rideId) => {
     socket.join(`ride_${rideId}`);
     console.log(`Socket ${socket.id} joined ride room: ride_${rideId}`);
   });
 
-  // Drivers join a global drivers room to receive requests
   socket.on('join_drivers', () => {
     socket.join('drivers_room');
     console.log(`Socket ${socket.id} joined drivers_room`);
   });
 
-  // Driver updates location
   socket.on('update_location', (data) => {
     io.to(`ride_${data.rideId}`).emit(`location_${data.rideId}`, data);
   });
@@ -49,22 +67,38 @@ io.on('connection', (socket) => {
 // Attach io to the app
 app.set('socketio', io);
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
-
-// Define API routes
+// Register API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/rides', rideRoutes);
 
-// Simple test route
+// Test route
 app.get('/', (req, res) => {
   res.send('CabIndia Backend API is running!');
+});
+
+// 404 handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: `Route ${req.method} ${req.url} not found` 
+  });
+});
+
+// Error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    success: false, 
+    message: 'Internal Server Error',
+    error: err.message 
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Test the API at: http://localhost:${PORT}/`);
+  console.log(`Auth routes available at: http://localhost:${PORT}/api/auth`);
 });

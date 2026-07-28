@@ -10,29 +10,41 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   const login = async (token, user) => {
-    setUserToken(token);
-    setUserData(user);
-    await AsyncStorage.setItem('userToken', token);
-    await AsyncStorage.setItem('userData', JSON.stringify(user));
+    try {
+      console.log('Logging in user:', user);
+      setUserToken(token);
+      setUserData(user);
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      console.log('Login successful, token saved');
+    } catch (error) {
+      console.error('Login storage error:', error);
+    }
   };
 
   const logout = async () => {
-    setUserToken(null);
-    setUserData(null);
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('userData');
+    try {
+      setUserToken(null);
+      setUserData(null);
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+      console.log('Logout successful');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const checkLoginStatus = async () => {
     try {
-      let token = await AsyncStorage.getItem('userToken');
-      let data = await AsyncStorage.getItem('userData');
-      if (token) {
+      const token = await AsyncStorage.getItem('userToken');
+      const data = await AsyncStorage.getItem('userData');
+      if (token && data) {
         setUserToken(token);
         setUserData(JSON.parse(data));
+        console.log('User already logged in');
       }
     } catch (e) {
-      console.log(`checkLoginStatus error: ${e}`);
+      console.log('checkLoginStatus error:', e);
     } finally {
       setIsLoading(false);
     }
