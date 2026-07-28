@@ -51,7 +51,9 @@
       "apiUrl": "https://cabindia-mobile.onrender.com/api"
     },
     "plugins": [
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-font",
+      "expo-asset"
     ]
   }
 }
