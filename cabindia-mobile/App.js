@@ -4,21 +4,21 @@ import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, LogBox, View, Text, Image } from 'react-native';
+import { StatusBar, LogBox, View, Text, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Ignore the InteractionManager deprecation warning
+// Ignore warnings
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
 
-// Keep the splash screen visible while we fetch resources
+// Keep splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(err => {
-  console.error('App.js: SplashScreen.preventAutoHideAsync failed with error:', err);
+  console.error('SplashScreen preventAutoHideAsync error:', err);
 });
 
-// Import your screens and context
+// Import screens
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterCustomerScreen from './src/screens/RegisterCustomerScreen';
@@ -69,33 +69,52 @@ const MainAppTabs = () => {
           backgroundColor: COLORS.cardBackground,
           borderTopWidth: 1,
           borderTopColor: COLORS.borderColor,
-          height: SIZES.padding * 4 + insets.bottom,
-          paddingBottom: SIZES.tiny + insets.bottom,
-          paddingTop: SIZES.tiny,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom || 8,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: SIZES.small,
+          fontSize: 11,
           fontFamily: FONTS.semibold,
+          marginBottom: 4,
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          let iconSize = SIZES.large;
+          const iconSize = size || 24;
+          
           if (route.name === 'HomeTab') {
-            iconName = 'map-pin';
+            iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'RidesTab') {
-            iconName = 'truck';
+            iconName = focused ? 'car' : 'car-outline';
           } else if (route.name === 'ProfileTab') {
-            iconName = 'user';
+            iconName = focused ? 'person' : 'person-outline';
           } else if (route.name === 'MoreTab') {
-            iconName = 'menu';
+            iconName = focused ? 'menu' : 'menu-outline';
           }
-          return <Feather name={iconName} size={iconSize} color={color} />;
+          
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
         },
       })}>
-      <Tab.Screen name="HomeTab" component={RideBookingScreen} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="RidesTab" component={RidesScreen} options={{ tabBarLabel: 'Rides' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
-      <Tab.Screen name="MoreTab" component={MoreScreen} options={{ tabBarLabel: 'More' }} />
+      <Tab.Screen 
+        name="HomeTab" 
+        component={RideBookingScreen} 
+        options={{ tabBarLabel: 'Home' }} 
+      />
+      <Tab.Screen 
+        name="RidesTab" 
+        component={RidesScreen} 
+        options={{ tabBarLabel: 'Rides' }} 
+      />
+      <Tab.Screen 
+        name="ProfileTab" 
+        component={ProfileScreen} 
+        options={{ tabBarLabel: 'Profile' }} 
+      />
+      <Tab.Screen 
+        name="MoreTab" 
+        component={MoreScreen} 
+        options={{ tabBarLabel: 'More' }} 
+      />
     </Tab.Navigator>
   );
 };
@@ -123,10 +142,9 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Load any resources here
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (e) {
-        console.error('App.js: Error during app preparation:', e);
+        console.error('App preparation error:', e);
       } finally {
         setAppIsReady(true);
       }
@@ -148,10 +166,12 @@ const RootNavigator = ({ appIsReady }) => {
   useEffect(() => {
     if (appIsReady && !isLoading && !splashHidden) {
       async function hideSplash() {
-        await SplashScreen.hideAsync().catch(err => {
-          console.error('RootNavigator: SplashScreen.hideAsync failed:', err);
-        });
-        setSplashHidden(true);
+        try {
+          await SplashScreen.hideAsync();
+          setSplashHidden(true);
+        } catch (err) {
+          console.error('Hide splash error:', err);
+        }
       }
       hideSplash();
     }
@@ -159,10 +179,11 @@ const RootNavigator = ({ appIsReady }) => {
 
   if (!appIsReady || isLoading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.splashContainer}>
         <Image 
           source={require('./assets/splash.png')} 
-          style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+          style={styles.splashImage}
+          resizeMode="cover"
         />
       </View>
     );
@@ -171,9 +192,20 @@ const RootNavigator = ({ appIsReady }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
         {userToken ? <MainAppStack /> : <AuthStack />}
       </NavigationContainer>
     </GestureHandlerRootView>
   );
-};
+}
+
+const styles = StyleSheet.create({
+  splashContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  splashImage: {
+    width: '100%',
+    height: '100%',
+  },
+});
