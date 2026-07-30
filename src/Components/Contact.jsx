@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from "lucide-react";
 
+// Add these imports here:
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import sendContactUs from "../services/contact/send_contact_us.contact.service";
+
 const contactInfo = [
   {
     icon: Phone,
@@ -29,17 +34,44 @@ const contactInfo = [
 ];
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const INITIAL_CONTACT_FORM_STATE = Object.freeze({
+    name: "",
+    phone: "",
+    email: "",
+    message: "",
+  })
+  const [form, setForm] = useState(INITIAL_CONTACT_FORM_STATE);
   const [submitted, setSubmitted] = useState(false);
   const [focused, setFocused] = useState("");
-
+  
+  // 1. Uncomment the loading state
+  const [loading, setLoading] = useState(false);
+ 
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent default form submission behavior
+    try {
+      setLoading(true);
+      
+      // 2. Use 'form' instead of 'formData', as that is your active state variable
+      // Note: Ensure `sendContactUs` is imported at the top of your file!
+      await sendContactUs(form); //send actual form data to backend
+      
+      // 3. Trigger your success UI by setting submitted to true 
+      // (This replaces the commented out setFormData logic)
+      setSubmitted(true); 
+      
+      // Note: Ensure `toast` is imported (e.g., from 'react-hot-toast' or 'react-toastify')
+      toast.success("Message sent successfully");
+    } catch (error) {
+      console.error(error.message || "Something Went Wrong");
+      toast.error(error.message || "Failed to send message")
+    } finally {
+      setLoading(false); //finally block ensures loading is reset regardless of success or failure(alwaye executed with try and catch block)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -268,11 +300,12 @@ export default function ContactPage() {
                     {/* Submit */}
                     <button
                       type="submit"
+                      disabled={loading}
                       className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-white font-black text-sm tracking-wide py-4 rounded-xl transition-all duration-200 active:scale-[0.98] shadow-[0_4px_24px_rgba(250,204,21,0.3)] hover:shadow-[0_6px_32px_rgba(250,204,21,0.45)] mt-1 group relative overflow-hidden"
                     >
                       <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 pointer-events-none" />
                       <Send size={16} />
-                      Send Message
+                      {loading ? "Sending..." : "Send Message"}
                     </button>
 
                   </form>

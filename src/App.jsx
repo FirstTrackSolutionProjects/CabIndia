@@ -1,5 +1,6 @@
 import React, { useEffect }  from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 
 import Welcome from "./Components/Welcome";
 import Header from "./Components/Header";
@@ -42,7 +43,7 @@ function App() {
 
   return (
     <>
-   
+      <ToastContainer />
       <Header />
       {/* <SideBar isOpen={isSidebarOpen} closeSidebar={() => setIsSidebarOpen(false)} />
        */}
