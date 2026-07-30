@@ -1,51 +1,32 @@
 // cabindia-backend/controllers/contactController.js
 const nodemailer = require('nodemailer');
-const db = require('../config/db'); // To save messages to DB
+// const db = require('../config/db'); // To save messages to DB
+const sendContactUsMessageSchema = require ('../schemas/contact/send_contact_us_message.contact.schema');
+const sendEmail = require('../services/nodemailer/send_email.nodemailer.service');
+const { ZodError } = require('zod');
+const contactUsEmailTemplate = require('../templates/email/contact_us.email.template');
 require('dotenv').config();
 
 // @route   POST /api/contact
 // @desc    Submit contact form and send email
 exports.submitContact = async (req, res) => {
-  const { name, email, mobile, message } = req.body;
-
-  if (!name || !email || !mobile || !message) {
-    return res.status(400).json({ message: 'Name, Email, Mobile, and Message are required', success: false });
-  }
 
   try {
-    // Save to database
-    // await db.execute(
-    //   'INSERT INTO contact_messages (name, email, mobile, message) VALUES (?, ?, ?, ?)',
-    //   [name, email, mobile || null, message]
-    // );
-
-    // Send email
-    let transporter = nodemailer.createTransport({
-      service: 'gmail', // Or other service/host
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
+    const data = sendContactUsMessageSchema.parse(req.body);
+    const template= contactUsEmailTemplate(data);
+    await sendEmail(data.email, template);
+    res.status(200).json({ message: 'Contact form submitted successfully', success: true });
+  } catch (err) {
+    console.error(err);
+    let statusCode = 500;
+    let message = (err instanceof Error) ? err.message : 'Internal server error';
+    if (err instanceof ZodError) {
+        statusCode = 400;
+        message = err.issues[0]?.message || 'Invalid input';
+    }
+    return res.status(statusCode).json({
+        message: message,
+        success: false
     });
-
-    let mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.CONTACT_SERVICE_EMAIL,
-      subject: `Contact form submission from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nMobile: ${mobile || 'N/A'}\n\nMessage:\n${message}`,
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Nodemailer error:', error);
-        // We still consider it a success if saved to DB, but might want to log email failure
-        return res.status(200).json({ message: 'Contact form submitted, but email failed to send.', success: true, emailSent: false });
-      }
-      res.status(200).json({ message: 'Contact form submitted successfully', success: true, emailSent: true });
-    });
-
-  } catch (error) {
-    console.error('Contact form submission error:', error);
-    res.status(500).json({ message: 'Server error during contact form submission', success: false });
   }
 };
