@@ -1,0 +1,56 @@
+# Build artifacts
+build/
+dist/
+web-build/
+android/
+ios/
+.expo/
+.eas/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Environment files (don't include secrets)
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# README and docs
+README.md
+LICENSE
+*.md
+
+# Temporary files
+*.tmp
+*.temp
+
+# Coverage
+coverage/
+
+# Misc
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision

@@ -24,18 +24,11 @@ import Constants from 'expo-constants';
 const { height, width } = Dimensions.get('window');
 
 // ============================================
-// BACKEND URL - Change this to your deployed backend URL
+// BACKEND URL - Using production URL
 // ============================================
-// For Production (Render/Netlify):
-// const BACKEND_URL = 'https://your-backend.onrender.com';
-
-// For Local Development (replace with your computer's IP):
-// const BACKEND_URL = 'http://192.168.29.203:5000';
-
-// Using environment variable with fallback
 const BACKEND_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 
                     Constants.expoConfig?.extra?.socketUrl || 
-                    'http://192.168.29.203:5000';
+                    'https://cabindia-mobile.onrender.com'; // ✅ PRODUCTION URL
 
 console.log('🔌 Socket connecting to:', BACKEND_URL);
 
