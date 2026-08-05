@@ -30,24 +30,18 @@
         "ACCESS_COARSE_LOCATION",
         "FOREGROUND_SERVICE",
         "ACCESS_BACKGROUND_LOCATION"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
-        }
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://your-backend-url.onrender.com",
-      "eas": {
-        "projectId": "31b38e4a-dff1-43ad-afbb-ae492ca6181c"
-      }
+      "apiUrl": "https://your-backend.onrender.com"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-asset",
+      "expo-splash-screen"
     ]
   }
 }
