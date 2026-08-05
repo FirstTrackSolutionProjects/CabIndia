@@ -36,7 +36,10 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://your-backend.onrender.com"
+      "eas": {
+        "projectId": "31b38e4a-dff1-43ad-afbb-ae492ca6181c"
+      },
+      "apiUrl": "https://cabindia-mobile.onrender.com"
     },
     "plugins": [
       "expo-font",
