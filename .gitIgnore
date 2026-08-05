@@ -28,3 +28,4 @@ dist-ssr
 combined_project_files.txt
 mob-dev-plan.md
 .env.production
+.expo
