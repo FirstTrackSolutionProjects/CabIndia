@@ -3,10 +3,13 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Use the API URL from app.json extra
-const API_URL = Constants.expoConfig.extra.apiUrl || 'https://cabindia-mobile.onrender.com';
+// Get API URL from environment
+const API_URL = process.env.API_URL || Constants.expoConfig?.extra?.apiUrl || 'http://192.168.29.203:5000';
 
-console.log('API_URL:', API_URL); // This will help debug
+// For production, use deployed backend URL
+// const API_URL = 'https://your-backend.onrender.com';
+
+console.log('API_URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -42,8 +45,15 @@ api.interceptors.response.use(
     console.log('Response:', response.status, response.config.url);
     return response;
   },
-  (error) => {
+  async (error) => {
     console.error('API Error:', error.response?.status, error.response?.data || error.message);
+    
+    // Handle token expiration
+    if (error.response?.status === 401) {
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+    }
+    
     return Promise.reject(error);
   }
 );

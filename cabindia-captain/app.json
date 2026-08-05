@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "CabIndia Captain",
+    "slug": "cabindia-captain",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#0a0a0a"
+    },
+    "ios": {
+      "bundleIdentifier": "com.cabindia.captain",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "CabIndia Captain needs your location to accept nearby ride requests.",
+        "NSLocationAlwaysUsageDescription": "CabIndia Captain needs your location to track your rides and show your availability."
+      }
+    },
+    "android": {
+      "package": "com.cabindia.captain",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0a",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "https://your-backend-url.onrender.com",
+      "eas": {
+        "projectId": "31b38e4a-dff1-43ad-afbb-ae492ca6181c"
+      }
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
