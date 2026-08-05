@@ -1,36 +1,66 @@
 // cabindia-mobile/src/screens/ProfileScreen.js
-// Please create this new file.
-// This is a placeholder for the User Profile screen.
-
-import React, { useContext, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import React, { useContext, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 
-const socket = io(Constants.expoConfig.extra.apiUrl.replace('/api', ''), { transports: ['websocket'] });
+// ✅ FIXED SOCKET URL
+const SOCKET_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
+const socket = io(SOCKET_URL, { 
+  transports: ['websocket'],
+  reconnection: true,
+  reconnectionAttempts: 5
+});
+
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { userData, logout } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Join drivers room for testing
+    socket.emit('join_drivers');
+
+    socket.on('new_ride_request', (data) => {
+      Alert.alert(
+        "🚗 New Ride Request!",
+        `Pickup: ${data.pickupAddress}\nPrice: ₹${data.estimatedPrice}`,
+        [
+          { text: "Ignore", style: "cancel" },
+          { 
+            text: "Accept", 
+            onPress: () => {
+              Alert.alert("Accepted", "You accepted ride " + data.rideId);
+              // Navigate to ride details
+              navigation.navigate('Map', { rideId: data.rideId });
+            }
+          }
+        ]
+      );
+    });
+
+    return () => {
+      socket.off('new_ride_request');
+    };
+  }, []);
 
   const handleLogout = async () => {
     Alert.alert(
       "Logout",
       "Are you sure you want to log out?",
       [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
+        { text: "Cancel", style: "cancel" },
         { 
           text: "Logout", 
           onPress: async () => {
+            setLoading(true);
             await logout();
-            // Navigation to AuthStack is handled by AuthContext in App.js
+            setLoading(false);
           },
           style: "destructive"
         }
@@ -42,30 +72,11 @@ export default function ProfileScreen() {
     navigation.navigate('CaptainApplication');
   };
 
-  useEffect(() => {
-    // For testing: Automatically join drivers room when profile is viewed
-    socket.emit('join_drivers');
-
-    socket.on('new_ride_request', (data) => {
-      Alert.alert(
-        "New Ride Request!",
-        `Pickup: ${data.pickupAddress}\nPrice: ${data.estimatedPrice}`,
-        [
-          { text: "Ignore", style: "cancel" },
-          { text: "Accept", onPress: () => Alert.alert("Accepted", "You accepted ride " + data.rideId) }
-        ]
-      );
-    });
-
-    return () => {
-      socket.off('new_ride_request');
-    };
-  }, []);
-
   if (!userData) {
     return (
       <View style={[GLOBAL_STYLES.container, styles.loadingContainer]}>
-        <Text style={GLOBAL_STYLES.text}>Loading profile...</Text>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
       </View>
     );
   }
@@ -77,27 +88,57 @@ export default function ProfileScreen() {
       </View>
       
       <View style={styles.profileCard}>
-        <Feather name="user" size={SIZES.h1 * 1.5} color={COLORS.primary} style={styles.profileIcon} />
+        <View style={styles.avatarContainer}>
+          <Feather name="user" size={40} color={COLORS.primary} />
+        </View>
         <Text style={styles.name}>{userData.name || 'User Name'}</Text>
         <Text style={styles.email}>{userData.email || 'user@example.com'}</Text>
+        <View style={styles.badgeContainer}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Customer</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.menuContainer}>
         <TouchableOpacity style={styles.menuItem}>
-          <Feather name="edit" size={SIZES.large} color={COLORS.textMuted} />
+          <Feather name="edit" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Edit Profile</Text>
+          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.menuItem}>
-          <Feather name="credit-card" size={SIZES.large} color={COLORS.textMuted} />
+          <Feather name="credit-card" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Payment Methods</Text>
+          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
+        
         <TouchableOpacity style={styles.menuItem} onPress={handleApplyAsCaptain}>
-          <Feather name="briefcase" size={SIZES.large} color={COLORS.textMuted} />
+          <Feather name="briefcase" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Apply as Captain</Text>
+          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.menuItem, styles.logoutButton]} onPress={handleLogout}>
-          <Feather name="log-out" size={SIZES.large} color={COLORS.error} />
-          <Text style={[styles.menuText, { color: COLORS.error }]}>Logout</Text>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <Feather name="settings" size={20} color={COLORS.textMuted} />
+          <Text style={styles.menuText}>Settings</Text>
+          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.menuItem, styles.logoutButton]} 
+          onPress={handleLogout}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={COLORS.error} />
+          ) : (
+            <>
+              <Feather name="log-out" size={20} color={COLORS.error} />
+              <Text style={[styles.menuText, { color: COLORS.error }]}>Logout</Text>
+              <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -108,6 +149,10 @@ const styles = StyleSheet.create({
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
   },
   header: {
     paddingVertical: SIZES.padding * 2,
@@ -128,25 +173,49 @@ const styles = StyleSheet.create({
     padding: SIZES.padding * 2,
     margin: SIZES.padding,
     alignItems: 'center',
-    marginTop: SIZES.padding * 3,
+    marginTop: SIZES.padding * 2,
   },
-  profileIcon: {
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: `${COLORS.primary}1A`,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SIZES.margin,
   },
   name: {
     fontSize: SIZES.h2,
     fontFamily: FONTS.bold,
     color: COLORS.text,
-    marginBottom: SIZES.margin / 2,
+    marginBottom: 4,
   },
   email: {
     fontSize: SIZES.medium,
     color: COLORS.textMuted,
-    marginBottom: SIZES.margin * 2,
+  },
+  badgeContainer: {
+    flexDirection: 'row',
+    marginTop: SIZES.margin,
+  },
+  badge: {
+    backgroundColor: `${COLORS.primary}1A`,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  badgeText: {
+    color: COLORS.primary,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.bold,
   },
   menuContainer: {
     paddingHorizontal: SIZES.padding,
-    marginTop: SIZES.margin * 2,
+    marginTop: SIZES.margin,
   },
   menuItem: {
     flexDirection: 'row',
@@ -157,16 +226,19 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderColor,
     padding: SIZES.padding * 1.5,
     marginBottom: SIZES.margin,
-    gap: SIZES.margin,
   },
   menuText: {
     ...GLOBAL_STYLES.text,
     fontSize: SIZES.body,
     fontFamily: FONTS.semibold,
     flex: 1,
+    marginLeft: SIZES.margin,
+  },
+  menuArrow: {
+    marginLeft: 'auto',
   },
   logoutButton: {
-    marginTop: SIZES.margin * 3,
+    marginTop: SIZES.margin * 2,
     borderColor: COLORS.error,
-  }
+  },
 });

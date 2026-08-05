@@ -29,11 +29,22 @@ const requestRide = async (req, res) => {
             'SELECT id, user_id, current_lat, current_lon FROM drivers WHERE is_available = 1 AND status = "online" LIMIT 5'
         );
 
+        const io = req.app.get('socketio');
+        
         if (drivers.length === 0) {
-            return res.status(404).json({ success: false, message: 'No drivers available nearby. Please try again shortly.', rideId });
+            // Emit to user that no drivers are available
+            io.to(`ride_${rideId}`).emit('ride_status_update', {
+                status: 'failed',
+                message: 'No drivers available. Please try again shortly.'
+            });
+            return res.status(404).json({ 
+                success: false, 
+                message: 'No drivers available nearby. Please try again shortly.', 
+                rideId 
+            });
         }
 
-        const io = req.app.get('socketio');
+        // Emit new ride request to all online drivers
         io.to('drivers_room').emit('new_ride_request', {
             rideId,
             pickupAddress,
@@ -44,7 +55,17 @@ const requestRide = async (req, res) => {
             pickupLon
         });
 
-        res.status(201).json({ success: true, rideId, message: 'Ride requested. Searching for available drivers...' });
+        // Also emit to the user's ride room
+        io.to(`ride_${rideId}`).emit('ride_status_update', {
+            status: 'searching',
+            message: 'Searching for available drivers...'
+        });
+
+        res.status(201).json({ 
+            success: true, 
+            rideId, 
+            message: 'Ride requested. Searching for available drivers...' 
+        });
 
     } catch (error) {
         console.error('Error requesting ride:', error);
@@ -80,6 +101,27 @@ const acceptRide = async (req, res) => {
 
         await db.execute('UPDATE drivers SET status = "on_trip" WHERE id = ?', [driverId]);
 
+        // ✅ EMIT REAL-TIME UPDATES
+        const io = req.app.get('socketio');
+        
+        // Notify the user that a driver accepted
+        io.to(`ride_${rideId}`).emit('driver_assigned', {
+            rideId,
+            driverId,
+            driverName: req.user.name || 'Captain',
+            driverPhone: req.user.mobile || 'N/A',
+            vehicleNumber: 'OD02AY9553', // This should come from vehicles table
+            driverRating: 4.8,
+            status: 'accepted',
+            message: 'A captain has accepted your ride!'
+        });
+
+        // Notify all drivers that this ride is taken
+        io.to('drivers_room').emit('ride_taken', {
+            rideId,
+            status: 'accepted'
+        });
+
         res.status(200).json({ message: 'Ride accepted successfully.', success: true });
 
     } catch (error) {
@@ -113,6 +155,14 @@ const startRide = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(400).json({ message: 'Ride not found, not assigned to this driver, or not in "accepted" status.', success: false });
         }
+
+        // ✅ EMIT REAL-TIME UPDATES
+        const io = req.app.get('socketio');
+        io.to(`ride_${rideId}`).emit('ride_status_update', {
+            rideId,
+            status: 'started',
+            message: 'Your ride has started!'
+        });
 
         res.status(200).json({ message: 'Ride started successfully.', success: true });
 
@@ -154,6 +204,16 @@ const completeRide = async (req, res) => {
         }
 
         await db.execute('UPDATE drivers SET status = "online" WHERE id = ?', [driverId]);
+
+        // ✅ EMIT REAL-TIME UPDATES
+        const io = req.app.get('socketio');
+        io.to(`ride_${rideId}`).emit('ride_status_update', {
+            rideId,
+            status: 'completed',
+            finalPrice,
+            distanceKm,
+            message: 'Your ride has been completed! Thank you for choosing CabIndia.'
+        });
 
         res.status(200).json({ message: 'Ride completed successfully. Payment pending.', success: true });
 
@@ -207,6 +267,19 @@ const cancelRide = async (req, res) => {
             await db.execute('UPDATE drivers SET status = "online" WHERE id = ?', [currentRide.driver_id]);
         }
 
+        // ✅ EMIT REAL-TIME UPDATES
+        const io = req.app.get('socketio');
+        io.to(`ride_${rideId}`).emit('ride_cancelled', {
+            rideId,
+            status: 'cancelled',
+            message: 'Ride has been cancelled.'
+        });
+
+        io.to('drivers_room').emit('ride_cancelled', {
+            rideId,
+            status: 'cancelled'
+        });
+
         res.status(200).json({ message: 'Ride cancelled successfully.', success: true });
 
     } catch (error) {
@@ -226,7 +299,18 @@ const getUserRideHistory = async (req, res) => {
 
     try {
         const [rides] = await db.execute(
-            'SELECT r.id, r.pickup_address, r.dropoff_address, r.vehicle_type_requested, r.estimated_price, r.final_price, r.status, r.requested_at, r.completed_at, d.user_id AS driver_user_id, u.name AS driver_name, v.make AS driver_vehicle_make, v.model AS driver_vehicle_model, v.license_plate FROM rides r LEFT JOIN drivers d ON r.driver_id = d.id LEFT JOIN users u ON d.user_id = u.id LEFT JOIN vehicles v ON d.vehicle_id = v.id WHERE r.user_id = ? ORDER BY r.requested_at DESC',
+            `SELECT r.*, 
+                    d.user_id AS driver_user_id, 
+                    u.name AS driver_name, 
+                    v.make AS driver_vehicle_make, 
+                    v.model AS driver_vehicle_model, 
+                    v.license_plate 
+             FROM rides r 
+             LEFT JOIN drivers d ON r.driver_id = d.id 
+             LEFT JOIN users u ON d.user_id = u.id 
+             LEFT JOIN vehicles v ON d.vehicle_id = v.id 
+             WHERE r.user_id = ? 
+             ORDER BY r.requested_at DESC`,
             [userId]
         );
         res.status(200).json({ success: true, rides });
@@ -253,7 +337,7 @@ const getDriverRideHistory = async (req, res) => {
         const driverId = driverCheck[0].id;
 
         const [rides] = await db.execute(
-            'SELECT r.id, r.pickup_address, r.dropoff_address, r.vehicle_type_requested, r.estimated_price, r.final_price, r.status, r.requested_at, r.completed_at, u.name AS customer_name FROM rides r LEFT JOIN users u ON r.user_id = u.id WHERE r.driver_id = ? ORDER BY r.requested_at DESC',
+            'SELECT r.*, u.name AS customer_name, u.mobile AS customer_mobile FROM rides r LEFT JOIN users u ON r.user_id = u.id WHERE r.driver_id = ? ORDER BY r.requested_at DESC',
             [driverId]
         );
         res.status(200).json({ success: true, rides });
@@ -275,7 +359,20 @@ const getRideDetails = async (req, res) => {
 
     try {
         const [ride] = await db.execute(
-            'SELECT r.*, u.name AS customer_name, d.user_id AS driver_user_id, du.name AS driver_name, v.make AS driver_vehicle_make, v.model AS driver_vehicle_model, v.license_plate FROM rides r LEFT JOIN users u ON r.user_id = u.id LEFT JOIN drivers d ON r.driver_id = d.id LEFT JOIN users du ON d.user_id = du.id LEFT JOIN vehicles v ON d.vehicle_id = v.id WHERE r.id = ?',
+            `SELECT r.*, 
+                    u.name AS customer_name, 
+                    d.user_id AS driver_user_id, 
+                    du.name AS driver_name,
+                    du.mobile AS driver_phone,
+                    v.make AS driver_vehicle_make, 
+                    v.model AS driver_vehicle_model, 
+                    v.license_plate 
+             FROM rides r 
+             LEFT JOIN users u ON r.user_id = u.id 
+             LEFT JOIN drivers d ON r.driver_id = d.id 
+             LEFT JOIN users du ON d.user_id = du.id 
+             LEFT JOIN vehicles v ON d.vehicle_id = v.id 
+             WHERE r.id = ?`,
             [rideId]
         );
 

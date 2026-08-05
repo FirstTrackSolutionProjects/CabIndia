@@ -1,41 +1,112 @@
 // cabindia-mobile/src/screens/RidesScreen.js
-// Please create this new file.
-// This is a placeholder for the Rides history/current rides screen.
-
-import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import api from '../utils/api';
 
-const dummyRides = [
-  { id: '1', status: 'completed', pickup: 'Office', dropoff: 'Home', fare: '₹250', date: '2023-10-26' },
-  { id: '2', status: 'pending', pickup: 'Starbucks', dropoff: 'Mall', fare: '₹180', date: '2023-10-25' },
-  { id: '3', status: 'cancelled', pickup: 'Airport', dropoff: 'Hotel', fare: '₹400', date: '2023-10-24' },
-  { id: '4', status: 'completed', pickup: 'Gym', dropoff: 'Restaurant', fare: '₹120', date: '2023-10-23' },
-];
+const RideItem = ({ ride }) => {
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'completed': return '#22c55e';
+      case 'pending': return '#facc15';
+      case 'accepted': return '#3b82f6';
+      case 'started': return '#8b5cf6';
+      case 'cancelled': return '#ef4444';
+      default: return COLORS.textMuted;
+    }
+  };
 
-const RideItem = ({ ride }) => (
-  <View style={styles.rideCard}>
-    <View style={styles.rideInfo}>
-      <Text style={styles.rideStatus}>{ride.status.toUpperCase()}</Text>
-      <Text style={styles.rideRoute}>{ride.pickup} to {ride.dropoff}</Text>
-      <Text style={styles.rideDate}>{ride.date}</Text>
+  return (
+    <View style={styles.rideCard}>
+      <View style={styles.rideInfo}>
+        <View style={styles.rideHeader}>
+          <Text style={[styles.rideStatus, { color: getStatusColor(ride.status) }]}>
+            {ride.status.toUpperCase()}
+          </Text>
+          <Text style={styles.rideDate}>
+            {new Date(ride.requested_at).toLocaleDateString()}
+          </Text>
+        </View>
+        <Text style={styles.rideRoute}>
+          {ride.pickup_address} → {ride.dropoff_address}
+        </Text>
+        {ride.driver_name && (
+          <Text style={styles.rideDriver}>Driver: {ride.driver_name}</Text>
+        )}
+        {ride.vehicle_type_requested && (
+          <Text style={styles.rideVehicle}>Vehicle: {ride.vehicle_type_requested}</Text>
+        )}
+      </View>
+      <Text style={styles.rideFare}>
+        ₹{ride.final_price || ride.estimated_price || '0'}
+      </Text>
     </View>
-    <Text style={styles.rideFare}>{ride.fare}</Text>
-  </View>
-);
+  );
+};
 
 export default function RidesScreen() {
+  const { userData } = useContext(AuthContext);
+  const [rides, setRides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchRides = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/rides/history/user');
+      console.log('Rides response:', response.data);
+      if (response.data.success) {
+        setRides(response.data.rides || []);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to fetch rides');
+      }
+    } catch (error) {
+      console.error('Error fetching rides:', error);
+      Alert.alert('Error', 'Failed to load ride history. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRides();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchRides();
+  };
+
+  if (loading) {
+    return (
+      <View style={[GLOBAL_STYLES.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading your rides...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={GLOBAL_STYLES.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Rides</Text>
       </View>
       <FlatList
-        data={dummyRides}
-        keyExtractor={(item) => item.id}
+        data={rides}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <RideItem ride={item} />}
         contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={<Text style={styles.emptyText}>No rides found yet.</Text>}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>🚗</Text>
+            <Text style={styles.emptyText}>No rides yet</Text>
+            <Text style={styles.emptySubText}>Book your first ride and it will appear here!</Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -55,6 +126,16 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: SIZES.padding,
+    flexGrow: 1,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
+    fontSize: SIZES.medium,
   },
   rideCard: {
     backgroundColor: COLORS.cardBackground,
@@ -69,32 +150,61 @@ const styles = StyleSheet.create({
   },
   rideInfo: {
     flex: 1,
+    marginRight: SIZES.margin,
+  },
+  rideHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   rideStatus: {
     fontSize: SIZES.small,
     fontFamily: FONTS.bold,
-    color: COLORS.primary,
-    marginBottom: SIZES.margin / 2,
+  },
+  rideDate: {
+    fontSize: SIZES.small,
+    color: COLORS.textMuted,
   },
   rideRoute: {
     fontSize: SIZES.medium,
     fontFamily: FONTS.semibold,
     color: COLORS.text,
+    marginBottom: 2,
   },
-  rideDate: {
+  rideDriver: {
     fontSize: SIZES.small,
     color: COLORS.textMuted,
-    marginTop: SIZES.margin / 2,
+  },
+  rideVehicle: {
+    fontSize: SIZES.small,
+    color: COLORS.textMuted,
   },
   rideFare: {
     fontSize: SIZES.large,
     fontFamily: FONTS.bold,
     color: COLORS.primary,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SIZES.padding * 4,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: SIZES.margin * 2,
+  },
   emptyText: {
     ...GLOBAL_STYLES.text,
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
     textAlign: 'center',
-    marginTop: SIZES.padding * 2,
+  },
+  emptySubText: {
+    ...GLOBAL_STYLES.text,
     color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SIZES.margin,
   },
 });

@@ -5,18 +5,27 @@ const bodyParser = require('body-parser');
 require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
+const rateLimit = require('express-rate-limit');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const rideRoutes = require('./routes/rideRoutes');
+const driverRoutes = require('./routes/driverRoutes'); // ✅ ADDED
 
 const app = express();
 const server = http.createServer(app);
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: 'Too many requests from this IP, please try again later.'
+});
+
 // Configure CORS
 const corsOptions = {
-  origin: '*',
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true,
@@ -25,6 +34,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Apply rate limiting to all API routes
+app.use('/api/', limiter);
 
 // Log all requests for debugging
 app.use((req, res, next) => {
@@ -35,7 +47,7 @@ app.use((req, res, next) => {
 // Initialize Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
     methods: ['GET', 'POST'],
     credentials: true,
   }
@@ -55,6 +67,16 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} joined drivers_room`);
   });
 
+  socket.on('driver_online', (data) => {
+    console.log(`Driver ${data.driverId} is online`);
+    socket.join('drivers_room');
+  });
+
+  socket.on('driver_offline', (data) => {
+    console.log(`Driver ${data.driverId} is offline`);
+    socket.leave('drivers_room');
+  });
+
   socket.on('update_location', (data) => {
     io.to(`ride_${data.rideId}`).emit(`location_${data.rideId}`, data);
   });
@@ -71,6 +93,7 @@ app.set('socketio', io);
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/rides', rideRoutes);
+app.use('/api/drivers', driverRoutes); // ✅ ADDED
 
 // Test route
 app.get('/', (req, res) => {
