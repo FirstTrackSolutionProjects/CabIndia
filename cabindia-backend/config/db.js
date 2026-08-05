@@ -7,16 +7,15 @@ const pool = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT) || 12291,
+  port: parseInt(process.env.DB_PORT) || 3306,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   connectTimeout: 30000,
-  // Aiven requires SSL with proper configuration
-  ssl: {
-    rejectUnauthorized: false, // Set to true in production with proper cert
-  },
-  // Enable keep-alive
+  // Hostinger typically doesn't require SSL, but if it does:
+  // ssl: {
+  //   rejectUnauthorized: false,
+  // },
   enableKeepAlive: true,
   keepAliveInitialDelay: 10000,
 });
