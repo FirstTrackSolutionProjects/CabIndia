@@ -24,13 +24,23 @@ import Constants from 'expo-constants';
 const { height, width } = Dimensions.get('window');
 
 // ============================================
-// BACKEND URL - Using production URL
+// BACKEND URL - Using Constants exclusively
 // ============================================
-const BACKEND_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 
-                    Constants.expoConfig?.extra?.socketUrl || 
-                    'https://cabindia-mobile.onrender.com'; // ✅ PRODUCTION URL
+const BACKEND_URL = Constants.expoConfig?.extra?.socketUrl || 
+                    Constants.expoConfig?.extra?.apiUrl ||
+                    'https://cabindia-mobile.onrender.com';
+
+// Google Maps API Keys from environment - Using Constants exclusively
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey ||
+                            '';
+
+// Google OAuth Config - Using Constants exclusively
+const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || 
+                         '';
 
 console.log('🔌 Socket connecting to:', BACKEND_URL);
+console.log('🗺️ Google Maps API Key configured:', !!GOOGLE_MAPS_API_KEY);
+console.log('🔑 Google Client ID configured:', !!GOOGLE_CLIENT_ID);
 
 // Create socket connection
 let socket = null;
@@ -85,7 +95,7 @@ const MapScreen = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
-  const [rideStatus, setRideStatus] = useState('searching'); // searching, accepted, started, completed
+  const [rideStatus, setRideStatus] = useState('searching');
   const [timer, setTimer] = useState(0);
   const [isDriverAssigned, setIsDriverAssigned] = useState(false);
   
@@ -502,6 +512,7 @@ const MapScreen = () => {
         loadingEnabled
         loadingIndicatorColor={COLORS.primary}
         loadingBackgroundColor={COLORS.background}
+        googleMapsApiKey={GOOGLE_MAPS_API_KEY}
       >
         {/* User Location Marker */}
         {currentLocation && (

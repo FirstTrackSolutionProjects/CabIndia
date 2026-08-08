@@ -1,0 +1,319 @@
+// cabindia-captain/src/screens/RegisterScreen.js
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import api from '../utils/api';
+
+const RegisterScreen = () => {
+  const navigation = useNavigation();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleRegister = async () => {
+    if (!name || !email || !mobile || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.post('/api/auth/register', {
+        name,
+        email,
+        mobile,
+        password,
+        confirmPassword,
+      });
+
+      if (response.data.success) {
+        Alert.alert('Success', response.data.message);
+        navigation.navigate('Login');
+      } else {
+        setError(response.data.message || 'Registration failed');
+        Alert.alert('Registration Failed', response.data.message || 'Please try again.');
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || 'Network error. Please try again.';
+      setError(errorMessage);
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <View style={styles.yellowAccentTop} />
+          <View style={styles.cardContent}>
+            <View style={styles.header}>
+              <View style={styles.iconContainer}>
+                <FontAwesome5 name="user-plus" size={26} color={COLORS.primary} />
+              </View>
+              <Text style={styles.brandSubtitle}>CabIndia Captain</Text>
+              <Text style={styles.title}>
+                Join <Text style={styles.titleHighlight}>Us</Text>
+              </Text>
+              <Text style={styles.subtitle}>Create your captain account</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.form}>
+              <Text style={styles.label}>Full Name <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={styles.input}
+                placeholder="John Doe"
+                placeholderTextColor={COLORS.textMuted}
+                value={name}
+                onChangeText={setName}
+              />
+
+              <Text style={styles.label}>Email <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={styles.input}
+                placeholder="you@email.com"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+
+              <Text style={styles.label}>Mobile Number <Text style={styles.required}>*</Text></Text>
+              <TextInput
+                style={styles.input}
+                placeholder="98765 43210"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="phone-pad"
+                value={mobile}
+                onChangeText={setMobile}
+              />
+
+              <Text style={styles.label}>Password <Text style={styles.required}>*</Text></Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Enter your password"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPwd}
+                />
+                <TouchableOpacity onPress={() => setShowPwd((v) => !v)} style={styles.eyeIcon}>
+                  <Feather name={showPwd ? 'eye-off' : 'eye'} size={16} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Confirm Password <Text style={styles.required}>*</Text></Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirm your password"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPwd}
+                />
+                <TouchableOpacity onPress={() => setShowConfirmPwd((v) => !v)} style={styles.eyeIcon}>
+                  <Feather name={showConfirmPwd ? 'eye-off' : 'eye'} size={16} color={COLORS.textMuted} />
+                </TouchableOpacity>
+              </View>
+
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              <TouchableOpacity
+                onPress={handleRegister}
+                style={[styles.registerButton, loading && { opacity: 0.7 }]}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.background} />
+                ) : (
+                  <Text style={styles.registerButtonText}>
+                    Sign Up <Feather name="arrow-right" size={15} color={COLORS.background} />
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.loginText}>
+              Already have an account?{' '}
+              <Text
+                style={styles.loginLink}
+                onPress={() => navigation.navigate('Login')}
+              >
+                Login here
+              </Text>
+            </Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: SIZES.padding * 2,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.padding,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SIZES.radius * 2,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  yellowAccentTop: {
+    height: 4,
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    borderTopLeftRadius: SIZES.radius * 2,
+    borderTopRightRadius: SIZES.radius * 2,
+  },
+  cardContent: {
+    padding: SIZES.padding * 2,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: SIZES.margin * 3,
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: SIZES.radius,
+    backgroundColor: `${COLORS.primary}1A`,
+    borderWidth: 1,
+    borderColor: `${COLORS.primary}40`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.margin,
+  },
+  brandSubtitle: {
+    fontSize: SIZES.small - 1,
+    fontFamily: FONTS.bold,
+    letterSpacing: 2,
+    color: `${COLORS.primary}99`,
+    textTransform: 'uppercase',
+    marginBottom: SIZES.margin / 2,
+  },
+  title: {
+    fontSize: SIZES.h2,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  titleHighlight: {
+    color: COLORS.primary,
+    fontStyle: 'italic',
+  },
+  subtitle: {
+    ...GLOBAL_STYLES.text,
+    fontSize: SIZES.small,
+    marginTop: SIZES.margin / 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.borderColor,
+    marginVertical: SIZES.margin * 2,
+  },
+  form: {
+    width: '100%',
+    gap: SIZES.margin * 1.5,
+  },
+  label: {
+    fontSize: SIZES.small - 1,
+    fontFamily: FONTS.bold,
+    letterSpacing: 1,
+    color: COLORS.text,
+    textTransform: 'uppercase',
+  },
+  required: {
+    color: COLORS.primary,
+  },
+  input: {
+    height: 48,
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding,
+    color: COLORS.text,
+    fontSize: SIZES.body - 2,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+    height: 48,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: SIZES.padding,
+    color: COLORS.text,
+    fontSize: SIZES.body - 2,
+  },
+  eyeIcon: {
+    padding: SIZES.padding / 2,
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: SIZES.small,
+    marginTop: -SIZES.margin,
+  },
+  registerButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.radius,
+    paddingVertical: SIZES.padding * 0.9,
+    marginTop: SIZES.margin,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: SIZES.margin / 2,
+  },
+  registerButtonText: {
+    color: COLORS.background,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
+  },
+  loginText: {
+    ...GLOBAL_STYLES.text,
+    fontSize: SIZES.small,
+    textAlign: 'center',
+    marginTop: SIZES.margin * 2,
+  },
+  loginLink: {
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+  },
+});
+
+export default RegisterScreen;

@@ -4,10 +4,11 @@ import React, { useState, useEffect, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, View, Text, Image, StyleSheet } from 'react-native';
+import { StatusBar, View, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,21 +20,36 @@ const AuthProvider = ({ children }) => {
   const [userToken, setUserToken] = useState(null);
   const [userData, setUserData] = useState(null);
 
-  const login = (token, user) => {
+  const login = async (token, user) => {
     setUserToken(token);
     setUserData(user);
+    await AsyncStorage.setItem('userToken', token);
+    await AsyncStorage.setItem('userData', JSON.stringify(user));
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUserToken(null);
     setUserData(null);
+    await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('userData');
   };
 
   useEffect(() => {
-    // Check stored token
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    const checkLoginStatus = async () => {
+      try {
+        const token = await AsyncStorage.getItem('userToken');
+        const data = await AsyncStorage.getItem('userData');
+        if (token && data) {
+          setUserToken(token);
+          setUserData(JSON.parse(data));
+        }
+      } catch (e) {
+        console.log('checkLoginStatus error:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkLoginStatus();
   }, []);
 
   return (
@@ -106,6 +122,13 @@ const MainTabs = () => (
   </Tab.Navigator>
 );
 
+const MainStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="MainTabs" component={MainTabs} />
+    <Stack.Screen name="Map" component={MapScreen} />
+  </Stack.Navigator>
+);
+
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
@@ -136,12 +159,26 @@ export default function App() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NavigationContainer>
           <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-          <MainTabs />
+          <RootNavigator />
         </NavigationContainer>
       </GestureHandlerRootView>
     </AuthProvider>
   );
 }
+
+const RootNavigator = () => {
+  const { userToken, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image source={require('./assets/splash.png')} style={styles.splashImage} />
+      </View>
+    );
+  }
+
+  return userToken ? <MainStack /> : <AuthStack />;
+};
 
 const styles = StyleSheet.create({
   splashContainer: { flex: 1, backgroundColor: '#0a0a0a' },
