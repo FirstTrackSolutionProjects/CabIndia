@@ -18,7 +18,7 @@
         "NSLocationWhenInUseUsageDescription": "CabIndia needs your location to find nearby rides.",
         "NSLocationAlwaysUsageDescription": "CabIndia needs your location to track your ride safely.",
         "NSMotionUsageDescription": "CabIndia uses motion data to improve location accuracy and detect driving activity.",
-        "GOOGLE_MAPS_API_KEY": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
+        "GOOGLE_MAPS_API_KEY": "AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY"
       }
     },
     "android": {
@@ -35,7 +35,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY"
         }
       }
     },
@@ -46,7 +46,18 @@
       "eas": {
         "projectId": "d356b644-02d4-49e6-8eeb-f50e060886c2"
       },
-      "apiUrl": "https://cabindia-mobile.onrender.com"
+      "apiUrl": "https://cabindia-mobile.onrender.com",
+      "socketUrl": "https://cabindia-mobile.onrender.com",
+      "googleProjectId": "single-obelisk-504908-p6",
+      "googleAuthUri": "https://accounts.google.com/o/oauth2/auth",
+      "googleTokenUri": "https://oauth2.googleapis.com/token",
+      "appName": "CabIndia",
+      "appVersion": "1.0.0",
+      "appEnv": "production",
+      "enableGoogleLogin": true,
+      "enableFacebookLogin": false,
+      "enableReferralProgram": true,
+      "enableCaptchaOnRegister": false
     },
     "plugins": [
       "expo-splash-screen",

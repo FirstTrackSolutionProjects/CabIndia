@@ -1,4 +1,4 @@
-// cabindia-mobile/src/utils/api.js
+// cabindia-captain/src/utils/api.js
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -6,12 +6,7 @@ import Constants from 'expo-constants';
 // Get API URL from environment - using Constants exclusively
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
 
-// Google OAuth configuration - from environment variables only
-const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || '';
-const GOOGLE_CLIENT_SECRET = Constants.expoConfig?.extra?.googleClientSecret || '';
-
 console.log('API_URL:', API_URL);
-console.log('Google Client ID configured:', !!GOOGLE_CLIENT_ID);
 
 const api = axios.create({
   baseURL: API_URL,
