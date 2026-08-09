@@ -1,9 +1,10 @@
 // cabindia-mobile/src/screens/RidesScreen.js
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const RideItem = ({ ride }) => {
   const getStatusColor = (status) => {
@@ -17,25 +18,39 @@ const RideItem = ({ ride }) => {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'completed': return 'checkmark-circle';
+      case 'pending': return 'time';
+      case 'accepted': return 'car';
+      case 'started': return 'navigate';
+      case 'cancelled': return 'close-circle';
+      default: return 'help-circle';
+    }
+  };
+
   return (
     <View style={styles.rideCard}>
       <View style={styles.rideInfo}>
         <View style={styles.rideHeader}>
-          <Text style={[styles.rideStatus, { color: getStatusColor(ride.status) }]}>
-            {ride.status.toUpperCase()}
-          </Text>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
+            <Ionicons name={getStatusIcon(ride.status)} size={12} color={getStatusColor(ride.status)} />
+            <Text style={[styles.rideStatus, { color: getStatusColor(ride.status) }]}>
+              {ride.status.toUpperCase()}
+            </Text>
+          </View>
           <Text style={styles.rideDate}>
             {new Date(ride.requested_at).toLocaleDateString()}
           </Text>
         </View>
-        <Text style={styles.rideRoute}>
+        <Text style={styles.rideRoute} numberOfLines={1}>
           {ride.pickup_address} → {ride.dropoff_address}
         </Text>
         {ride.driver_name && (
-          <Text style={styles.rideDriver}>Driver: {ride.driver_name}</Text>
+          <Text style={styles.rideDriver}>👤 {ride.driver_name}</Text>
         )}
         {ride.vehicle_type_requested && (
-          <Text style={styles.rideVehicle}>Vehicle: {ride.vehicle_type_requested}</Text>
+          <Text style={styles.rideVehicle}>🚗 {ride.vehicle_type_requested}</Text>
         )}
       </View>
       <Text style={styles.rideFare}>
@@ -54,6 +69,7 @@ export default function RidesScreen() {
   const fetchRides = async () => {
     try {
       setLoading(true);
+      console.log('Fetching rides for user:', userData?.id);
       const response = await api.get('/rides/history/user');
       console.log('Rides response:', response.data);
       if (response.data.success) {
@@ -63,7 +79,12 @@ export default function RidesScreen() {
       }
     } catch (error) {
       console.error('Error fetching rides:', error);
-      Alert.alert('Error', 'Failed to load ride history. Please try again.');
+      // Check if it's an authentication issue
+      if (error.response?.status === 401) {
+        Alert.alert('Session Expired', 'Please login again.');
+      } else {
+        Alert.alert('Error', 'Failed to load ride history. Please try again.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -95,14 +116,14 @@ export default function RidesScreen() {
       </View>
       <FlatList
         data={rides}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         renderItem={({ item }) => <RideItem ride={item} />}
         contentContainerStyle={styles.listContainer}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+            <Ionicons name="car-outline" size={48} color={COLORS.textMuted} />
             <Text style={styles.emptyText}>No rides yet</Text>
             <Text style={styles.emptySubText}>Book your first ride and it will appear here!</Text>
           </View>
@@ -158,6 +179,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 4,
+  },
   rideStatus: {
     fontSize: SIZES.small,
     fontFamily: FONTS.bold,
@@ -191,20 +220,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SIZES.padding * 4,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: SIZES.margin * 2,
-  },
   emptyText: {
     ...GLOBAL_STYLES.text,
     fontSize: SIZES.large,
     fontFamily: FONTS.bold,
     textAlign: 'center',
+    marginTop: SIZES.margin,
   },
   emptySubText: {
     ...GLOBAL_STYLES.text,
     color: COLORS.textMuted,
     textAlign: 'center',
-    marginTop: SIZES.margin,
+    marginTop: SIZES.margin / 2,
   },
 });

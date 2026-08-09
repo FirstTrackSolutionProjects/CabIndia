@@ -1,9 +1,14 @@
 // cabindia-mobile/src/screens/RegisterCustomerScreen.js
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, TextInput, TouchableOpacity, StyleSheet, 
+  Alert, ActivityIndicator, ScrollView 
+} from 'react-native';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import Constants from 'expo-constants';
 
 const RegisterCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -14,7 +19,18 @@ const RegisterCustomerScreen = ({ navigation }) => {
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Configure Google Sign-In
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
+      offlineAccess: true,
+      hostedDomain: '',
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
 
   const handleRegister = async () => {
     if (!name || !email || !mobile || !password || !confirmPassword) {
@@ -23,6 +39,14 @@ const RegisterCustomerScreen = ({ navigation }) => {
     }
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert("Error", "Password must be at least 8 characters.");
+      return;
+    }
+    if (mobile.length !== 10) {
+      Alert.alert("Error", "Please enter a valid 10-digit mobile number.");
       return;
     }
 
@@ -57,8 +81,74 @@ const RegisterCustomerScreen = ({ navigation }) => {
     }
   };
 
+  const handleGoogleRegister = async () => {
+    try {
+      setGoogleLoading(true);
+      
+      // Check if Google Play Services are available
+      await GoogleSignin.hasPlayServices();
+      
+      // Get user info
+      const userInfo = await GoogleSignin.signIn();
+      console.log('Google user info:', userInfo);
+      
+      const { idToken, user } = userInfo;
+      
+      if (!idToken) {
+        throw new Error('No ID token received from Google');
+      }
+
+      // Send to backend for registration/login
+      const response = await api.post('/api/auth/google', {
+        idToken: idToken,
+        email: user.email,
+        name: user.name || user.givenName || user.email.split('@')[0],
+        picture: user.photo,
+      });
+
+      console.log('Google registration response:', response.data);
+
+      if (response.data.success) {
+        Alert.alert(
+          'Success', 
+          'Account created with Google successfully! You are now logged in.',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                // Navigate to Home screen
+                navigation.navigate('HomeTab');
+              } 
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Registration Failed', response.data.message || 'Please try again.');
+      }
+    } catch (error) {
+      console.error('Google registration error:', error);
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled the login flow
+        console.log('User cancelled Google sign-in');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Error', 'Google sign-in is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available. Please update.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to register with Google. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+    <ScrollView 
+      contentContainerStyle={styles.scrollContainer} 
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.container}>
         <View style={styles.card}>
           <View style={styles.yellowAccentTop} />
@@ -103,6 +193,7 @@ const RegisterCustomerScreen = ({ navigation }) => {
                 placeholder="98765 43210"
                 placeholderTextColor={COLORS.textMuted}
                 keyboardType="phone-pad"
+                maxLength={10}
                 value={mobile}
                 onChangeText={setMobile}
               />
@@ -161,11 +252,18 @@ const RegisterCustomerScreen = ({ navigation }) => {
             </View>
 
             <TouchableOpacity
-              style={styles.googleButton}
-              onPress={() => Alert.alert('Google Login', 'Google registration not yet implemented.')}
+              style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
+              onPress={handleGoogleRegister}
+              disabled={googleLoading}
             >
-              <FontAwesome5 name="google" size={20} color={COLORS.text} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
+              {googleLoading ? (
+                <ActivityIndicator color={COLORS.text} size="small" />
+              ) : (
+                <>
+                  <FontAwesome5 name="google" size={20} color={COLORS.text} />
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                </>
+              )}
             </TouchableOpacity>
 
             <Text style={styles.loginText}>

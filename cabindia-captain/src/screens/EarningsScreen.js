@@ -1,46 +1,69 @@
 // cabindia-captain/src/screens/EarningsScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../utils/api';
 
 export default function EarningsScreen() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     todayRides: 0,
     todayEarnings: 0,
     totalRides: 0,
+    rating: 0,
   });
-
-  useEffect(() => {
-    fetchEarnings();
-  }, []);
 
   const fetchEarnings = async () => {
     try {
       setLoading(true);
       const response = await api.get('/drivers/stats');
+      console.log('Earnings stats response:', response.data);
       if (response.data.success) {
         setStats(response.data.data);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to load earnings.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load earnings.');
+      console.error('Error fetching earnings:', error);
+      if (error.response?.status === 401) {
+        Alert.alert('Session Expired', 'Please login again.');
+      } else {
+        Alert.alert('Error', 'Failed to load earnings. Please try again.');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    fetchEarnings();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchEarnings();
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading earnings...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={GLOBAL_STYLES.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={GLOBAL_STYLES.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Earnings</Text>
       </View>
@@ -93,6 +116,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
   },
   earningsCard: {
     backgroundColor: COLORS.cardBackground,

@@ -1,13 +1,10 @@
 // cabindia-mobile/src/screens/MoreScreen.js
-// Please create this new file.
-// This is a placeholder for the "More" or "Settings/Support" screen.
-
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function MoreScreen() {
   const navigation = useNavigation();
@@ -18,15 +15,11 @@ export default function MoreScreen() {
       "Logout",
       "Are you sure you want to log out?",
       [
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Cancel",
-          style: "cancel"
-        },
-        { 
-          text: "Logout", 
+          text: "Logout",
           onPress: async () => {
             await logout();
-            // Navigation to AuthStack is handled by AuthContext in App.js
           },
           style: "destructive"
         }
@@ -35,67 +28,67 @@ export default function MoreScreen() {
   };
 
   const menuItems = [
-    { 
-      id: 'support', 
-      title: 'Support / Help', 
-      icon: 'message-circle', 
-      action: () => navigation.navigate('Chat') 
+    {
+      id: 'support',
+      title: 'Support / Help',
+      icon: 'chatbubble-outline',
+      action: () => navigation.navigate('Chat')
     },
-    { 
-      id: 'safety', 
-      title: 'Safety Features', 
-      icon: 'shield', 
-      action: () => navigation.navigate('SafetyScreen') 
+    {
+      id: 'safety',
+      title: 'Safety Features',
+      icon: 'shield-outline',
+      action: () => navigation.navigate('SafetyScreen')
     },
-    { 
-      id: 'privacy', 
-      title: 'Privacy Policy', 
-      icon: 'file-text', 
-      action: () => navigation.navigate('PolicyScreen', { 
-        title: 'Privacy Policy', 
+    {
+      id: 'privacy',
+      title: 'Privacy Policy',
+      icon: 'document-text-outline',
+      action: () => navigation.navigate('PolicyScreen', {
+        title: 'Privacy Policy',
         sections: [
           { title: 'Data Collection', content: 'We collect your name, email, and location to provide services.' },
           { title: 'Data Usage', content: 'Your data is used to improve our services and personalize your experience.' }
         ]
-      }) 
+      })
     },
-    { 
-      id: 'terms', 
-      title: 'Terms & Conditions', 
-      icon: 'book', 
-      action: () => navigation.navigate('PolicyScreen', { 
-        title: 'Terms & Conditions', 
+    {
+      id: 'terms',
+      title: 'Terms & Conditions',
+      icon: 'book-outline',
+      action: () => navigation.navigate('PolicyScreen', {
+        title: 'Terms & Conditions',
         sections: [
           { title: 'Service Agreement', content: 'By using CabIndia, you agree to our terms of service.' },
           { title: 'User Conduct', content: 'Users must adhere to community guidelines and refrain from misuse.' }
         ]
-      }) 
+      })
     },
-    { 
-      id: 'settings', 
-      title: 'App Settings', 
-      icon: 'settings', 
-      action: () => Alert.alert('Settings', 'App settings not yet implemented.') 
+    {
+      id: 'settings',
+      title: 'App Settings',
+      icon: 'settings-outline',
+      action: () => Alert.alert('Settings', 'App settings will be available soon.')
     },
   ];
 
   return (
-    <ScrollView style={GLOBAL_STYLES.container}>
+    <ScrollView style={GLOBAL_STYLES.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>More Options</Text>
       </View>
-      
+
       <View style={styles.menuContainer}>
         {menuItems.map((item) => (
           <TouchableOpacity key={item.id} style={styles.menuItem} onPress={item.action}>
-            <Feather name={item.icon} size={SIZES.large} color={COLORS.primary} />
+            <Ionicons name={item.icon} size={SIZES.large} color={COLORS.primary} />
             <Text style={styles.menuText}>{item.title}</Text>
-            <Feather name="chevron-right" size={SIZES.medium} color={COLORS.textMuted} />
+            <Ionicons name="chevron-forward" size={SIZES.medium} color={COLORS.textMuted} />
           </TouchableOpacity>
         ))}
 
         <TouchableOpacity style={[styles.menuItem, styles.logoutButton]} onPress={handleLogout}>
-          <Feather name="log-out" size={SIZES.large} color={COLORS.error} />
+          <Ionicons name="log-out-outline" size={SIZES.large} color={COLORS.error} />
           <Text style={[styles.menuText, { color: COLORS.error }]}>Logout</Text>
         </TouchableOpacity>
       </View>
@@ -104,6 +97,10 @@ export default function MoreScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   header: {
     paddingVertical: SIZES.padding * 2,
     backgroundColor: COLORS.cardBackground,
@@ -134,7 +131,7 @@ const styles = StyleSheet.create({
     ...GLOBAL_STYLES.text,
     fontSize: SIZES.body,
     fontFamily: FONTS.semibold,
-    flex: 1, // Allow text to take available space
+    flex: 1,
   },
   logoutButton: {
     marginTop: SIZES.margin * 3,
