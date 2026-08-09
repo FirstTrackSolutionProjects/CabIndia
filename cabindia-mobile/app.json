@@ -51,6 +51,8 @@
       "googleProjectId": "single-obelisk-504908-p6",
       "googleAuthUri": "https://accounts.google.com/o/oauth2/auth",
       "googleTokenUri": "https://oauth2.googleapis.com/token",
+      "googleClientId": "79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com",
+      "googleClientSecret": "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",
       "appName": "CabIndia",
       "appVersion": "1.0.0",
       "appEnv": "production",
@@ -60,6 +62,7 @@
       "enableCaptchaOnRegister": false
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-splash-screen",
       "expo-font",
       "expo-asset"

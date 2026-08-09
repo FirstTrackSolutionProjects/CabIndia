@@ -1,7 +1,8 @@
 // cabindia-captain/src/screens/RideHistoryScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../utils/api';
 
 const RideItem = ({ ride }) => {
@@ -27,11 +28,11 @@ const RideItem = ({ ride }) => {
             {new Date(ride.requested_at).toLocaleDateString()}
           </Text>
         </View>
-        <Text style={styles.rideRoute}>
+        <Text style={styles.rideRoute} numberOfLines={1}>
           {ride.pickup_address} → {ride.dropoff_address}
         </Text>
         {ride.customer_name && (
-          <Text style={styles.customerName}>Customer: {ride.customer_name}</Text>
+          <Text style={styles.customerName}>👤 {ride.customer_name}</Text>
         )}
       </View>
       <Text style={styles.rideFare}>
@@ -44,29 +45,45 @@ const RideItem = ({ ride }) => {
 export default function RideHistoryScreen() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchRides();
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchRides = async () => {
     try {
       setLoading(true);
       const response = await api.get('/drivers/rides');
+      console.log('Driver rides response:', response.data);
       if (response.data.success) {
         setRides(response.data.rides || []);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to load ride history.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load ride history.');
+      console.error('Error fetching driver rides:', error);
+      if (error.response?.status === 401) {
+        Alert.alert('Session Expired', 'Please login again.');
+      } else {
+        Alert.alert('Error', 'Failed to load ride history. Please try again.');
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  useEffect(() => {
+    fetchRides();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchRides();
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading ride history...</Text>
       </View>
     );
   }
@@ -75,15 +92,20 @@ export default function RideHistoryScreen() {
     <View style={GLOBAL_STYLES.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ride History</Text>
+        <Text style={styles.headerSubtitle}>{rides.length} completed rides</Text>
       </View>
       <FlatList
-        data={rides}
-        keyExtractor={(item) => item.id.toString()}
+        data={rides.filter(r => r.status === 'completed')}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         renderItem={({ item }) => <RideItem ride={item} />}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
+        }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No rides completed yet</Text>
+            <Ionicons name="car-outline" size={48} color={COLORS.textMuted} />
+            <Text style={styles.emptyText}>No completed rides</Text>
             <Text style={styles.emptySubText}>Complete your first ride to see it here</Text>
           </View>
         )}
@@ -104,6 +126,11 @@ const styles = StyleSheet.create({
     ...GLOBAL_STYLES.heading1,
     color: COLORS.primary,
   },
+  headerSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    marginTop: 2,
+  },
   listContainer: {
     padding: SIZES.padding,
     flexGrow: 1,
@@ -113,6 +140,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
   },
   rideCard: {
     backgroundColor: COLORS.cardBackground,
@@ -167,6 +198,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: SIZES.medium,
     fontFamily: FONTS.bold,
+    marginTop: SIZES.margin,
   },
   emptySubText: {
     color: COLORS.textMuted,

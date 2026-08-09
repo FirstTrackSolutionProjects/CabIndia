@@ -1,53 +1,15 @@
 // cabindia-mobile/src/screens/ProfileScreen.js
-import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
-import { io } from 'socket.io-client';
-import Constants from 'expo-constants';
-
-// ✅ FIXED SOCKET URL
-const SOCKET_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
-const socket = io(SOCKET_URL, { 
-  transports: ['websocket'],
-  reconnection: true,
-  reconnectionAttempts: 5
-});
-
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
   const { userData, logout } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // Join drivers room for testing
-    socket.emit('join_drivers');
-
-    socket.on('new_ride_request', (data) => {
-      Alert.alert(
-        "🚗 New Ride Request!",
-        `Pickup: ${data.pickupAddress}\nPrice: ₹${data.estimatedPrice}`,
-        [
-          { text: "Ignore", style: "cancel" },
-          { 
-            text: "Accept", 
-            onPress: () => {
-              Alert.alert("Accepted", "You accepted ride " + data.rideId);
-              // Navigate to ride details
-              navigation.navigate('Map', { rideId: data.rideId });
-            }
-          }
-        ]
-      );
-    });
-
-    return () => {
-      socket.off('new_ride_request');
-    };
-  }, []);
 
   const handleLogout = async () => {
     Alert.alert(
@@ -55,8 +17,8 @@ export default function ProfileScreen() {
       "Are you sure you want to log out?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Logout", 
+        {
+          text: "Logout",
           onPress: async () => {
             setLoading(true);
             await logout();
@@ -72,6 +34,18 @@ export default function ProfileScreen() {
     navigation.navigate('CaptainApplication');
   };
 
+  const handleEditProfile = () => {
+    Alert.alert('Edit Profile', 'Profile editing will be available soon.');
+  };
+
+  const handlePaymentMethods = () => {
+    Alert.alert('Payment Methods', 'Payment methods will be available soon.');
+  };
+
+  const handleSettings = () => {
+    Alert.alert('Settings', 'Settings will be available soon.');
+  };
+
   if (!userData) {
     return (
       <View style={[GLOBAL_STYLES.container, styles.loadingContainer]}>
@@ -82,14 +56,18 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={GLOBAL_STYLES.container}>
+    <ScrollView 
+      style={GLOBAL_STYLES.container} 
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Profile</Text>
       </View>
-      
+
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
-          <Feather name="user" size={40} color={COLORS.primary} />
+          <Ionicons name="person" size={40} color={COLORS.primary} />
         </View>
         <Text style={styles.name}>{userData.name || 'User Name'}</Text>
         <Text style={styles.email}>{userData.email || 'user@example.com'}</Text>
@@ -101,32 +79,42 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="edit" size={20} color={COLORS.textMuted} />
+        <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+          </View>
           <Text style={styles.menuText}>Edit Profile</Text>
-          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="credit-card" size={20} color={COLORS.textMuted} />
-          <Text style={styles.menuText}>Payment Methods</Text>
-          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem} onPress={handleApplyAsCaptain}>
-          <Feather name="briefcase" size={20} color={COLORS.textMuted} />
-          <Text style={styles.menuText}>Apply as Captain</Text>
-          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="settings" size={20} color={COLORS.textMuted} />
-          <Text style={styles.menuText}>Settings</Text>
-          <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.menuItem, styles.logoutButton]} 
+        <TouchableOpacity style={styles.menuItem} onPress={handlePaymentMethods}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuText}>Payment Methods</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleApplyAsCaptain}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="car-outline" size={20} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuText}>Apply as Captain</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="settings-outline" size={20} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuText}>Settings</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
+        <View style={styles.divider} />
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.logoutButton]}
           onPress={handleLogout}
           disabled={loading}
         >
@@ -134,25 +122,37 @@ export default function ProfileScreen() {
             <ActivityIndicator size="small" color={COLORS.error} />
           ) : (
             <>
-              <Feather name="log-out" size={20} color={COLORS.error} />
-              <Text style={[styles.menuText, { color: COLORS.error }]}>Logout</Text>
-              <Feather name="chevron-right" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+              <View style={[styles.menuIconWrapper, styles.logoutIconWrapper]}>
+                <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
+              </View>
+              <Text style={[styles.menuText, styles.logoutText]}>Logout</Text>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
             </>
           )}
         </TouchableOpacity>
       </View>
-    </View>
+
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>CabIndia v1.0.0</Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     color: COLORS.textMuted,
     marginTop: SIZES.margin,
+    fontSize: SIZES.medium,
   },
   header: {
     paddingVertical: SIZES.padding * 2,
@@ -162,7 +162,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderColor,
   },
   headerTitle: {
-    ...GLOBAL_STYLES.heading1,
+    fontSize: SIZES.h1,
+    fontFamily: FONTS.bold,
     color: COLORS.primary,
   },
   profileCard: {
@@ -227,18 +228,46 @@ const styles = StyleSheet.create({
     padding: SIZES.padding * 1.5,
     marginBottom: SIZES.margin,
   },
+  menuIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: `${COLORS.primary}1A`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SIZES.margin,
+  },
   menuText: {
-    ...GLOBAL_STYLES.text,
     fontSize: SIZES.body,
     fontFamily: FONTS.semibold,
+    color: COLORS.text,
     flex: 1,
-    marginLeft: SIZES.margin,
   },
   menuArrow: {
     marginLeft: 'auto',
   },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.borderColor,
+    marginVertical: SIZES.margin,
+  },
   logoutButton: {
-    marginTop: SIZES.margin * 2,
     borderColor: COLORS.error,
+    borderWidth: 1,
+  },
+  logoutIconWrapper: {
+    backgroundColor: `${COLORS.error}1A`,
+  },
+  logoutText: {
+    color: COLORS.error,
+  },
+  footer: {
+    padding: SIZES.padding,
+    alignItems: 'center',
+    marginTop: SIZES.margin * 2,
+  },
+  footerText: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
   },
 });

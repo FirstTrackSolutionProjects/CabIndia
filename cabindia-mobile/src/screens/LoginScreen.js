@@ -14,6 +14,8 @@ import { FontAwesome5, Feather } from '@expo/vector-icons';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import Constants from 'expo-constants';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -21,7 +23,18 @@ const LoginScreen = () => {
   const [showPwd, setShowPwd] = useState(false);
   const [form, setForm] = useState({ credential: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Configure Google Sign-In
+  React.useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
+      offlineAccess: true,
+      hostedDomain: '',
+      forceCodeForRefreshToken: true,
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!form.credential || !form.password) {
@@ -54,6 +67,57 @@ const LoginScreen = () => {
       Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setGoogleLoading(true);
+      
+      // Check if Google Play Services are available
+      await GoogleSignin.hasPlayServices();
+      
+      // Get user info
+      const userInfo = await GoogleSignin.signIn();
+      console.log('Google user info:', userInfo);
+      
+      const { idToken, user } = userInfo;
+      
+      if (!idToken) {
+        throw new Error('No ID token received from Google');
+      }
+
+      // Send to backend
+      const response = await api.post('/api/auth/google', {
+        idToken: idToken,
+        email: user.email,
+        name: user.name,
+        picture: user.photo,
+      });
+
+      console.log('Google login response:', response.data);
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Logged in with Google successfully!');
+        await login(response.data.token, response.data.user);
+      } else {
+        Alert.alert('Login Failed', response.data.message || 'Please try again.');
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled the login flow
+        console.log('User cancelled Google sign-in');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Error', 'Google sign-in is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available. Please update.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to login with Google. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -126,11 +190,18 @@ const LoginScreen = () => {
           </View>
 
           <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => Alert.alert('Google Login', 'Google login not yet implemented.')}
+            style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
+            onPress={handleGoogleLogin}
+            disabled={googleLoading}
           >
-            <FontAwesome5 name="google" size={20} color={COLORS.text} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {googleLoading ? (
+              <ActivityIndicator color={COLORS.text} size="small" />
+            ) : (
+              <>
+                <FontAwesome5 name="google" size={20} color={COLORS.text} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.registerText}>

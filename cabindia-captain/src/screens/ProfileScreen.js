@@ -5,7 +5,7 @@ import { AuthContext } from '../../App';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { userData, logout } = useContext(AuthContext);
 
   const handleLogout = () => {
@@ -19,8 +19,24 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleEditProfile = () => {
+    Alert.alert('Edit Profile', 'Profile editing will be available soon.');
+  };
+
+  const handleVehicleDetails = () => {
+    Alert.alert('Vehicle Details', 'Vehicle details will be available soon.');
+  };
+
+  const handlePaymentSettings = () => {
+    Alert.alert('Payment Settings', 'Payment settings will be available soon.');
+  };
+
+  const handleSettings = () => {
+    Alert.alert('Settings', 'Settings will be available soon.');
+  };
+
   return (
-    <ScrollView style={GLOBAL_STYLES.container}>
+    <ScrollView style={GLOBAL_STYLES.container} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
       </View>
@@ -39,25 +55,25 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="person-outline" size={20} color={COLORS.textMuted} />
+        <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+          <Ionicons name="create-outline" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Edit Profile</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleVehicleDetails}>
           <Ionicons name="car-outline" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Vehicle Details</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="cash-outline" size={20} color={COLORS.textMuted} />
+
+        <TouchableOpacity style={styles.menuItem} onPress={handlePaymentSettings}>
+          <Ionicons name="card-outline" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Payment Settings</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
         </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.menuItem}>
+
+        <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
           <Ionicons name="settings-outline" size={20} color={COLORS.textMuted} />
           <Text style={styles.menuText}>Settings</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
@@ -74,6 +90,10 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
   header: {
     paddingVertical: SIZES.padding * 2,
     backgroundColor: COLORS.cardBackground,

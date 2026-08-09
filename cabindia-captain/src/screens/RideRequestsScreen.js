@@ -1,5 +1,5 @@
 // cabindia-captain/src/screens/RideRequestsScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,31 +8,79 @@ import Constants from 'expo-constants';
 import api from '../utils/api';
 
 const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
-const socket = io(BACKEND_URL, { transports: ['websocket'] });
 
 export default function RideRequestsScreen({ navigation }) {
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    socket.on('new_ride_request', (data) => {
-      setRequests(prev => [data, ...prev]);
+    // Connect to socket
+    const socket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('✅ Requests socket connected');
+      socket.emit('join_drivers');
     });
 
+    socket.on('new_ride_request', (data) => {
+      console.log('New ride request received:', data);
+      setRequests(prev => [{
+        rideId: data.rideId || data.id || Date.now(),
+        pickupAddress: data.pickupAddress || 'Pickup location',
+        dropoffAddress: data.dropoffAddress || 'Dropoff location',
+        estimatedPrice: data.estimatedPrice || '0',
+        vehicleType: data.vehicleType || 'Cab',
+        ...data
+      }, ...prev]);
+    });
+
+    socket.on('ride_taken', (data) => {
+      setRequests(prev => prev.filter(r => r.rideId !== data.rideId));
+    });
+
+    socket.on('ride_cancelled', (data) => {
+      setRequests(prev => prev.filter(r => r.rideId !== data.rideId));
+    });
+
+    // Also fetch any pending requests from API
+    fetchPendingRequests();
+
     return () => {
-      socket.off('new_ride_request');
+      socket.disconnect();
     };
   }, []);
+
+  const fetchPendingRequests = async () => {
+    try {
+      setLoading(true);
+      // This endpoint might not exist, so we'll just simulate
+      // In a real app, you'd have an endpoint to get pending requests
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      setLoading(false);
+    }
+  };
 
   const acceptRide = async (rideId) => {
     try {
       const response = await api.post(`/rides/${rideId}/accept`);
       if (response.data.success) {
-        Alert.alert('Success', 'Ride accepted successfully!');
+        Alert.alert('✅ Ride Accepted!', 'Navigate to the pickup location.');
         setRequests(prev => prev.filter(r => r.rideId !== rideId));
         navigation.navigate('Map', { rideId });
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to accept ride.');
       }
     } catch (error) {
+      console.error('Accept ride error:', error);
       Alert.alert('Error', 'Failed to accept ride. Please try again.');
     }
   };
@@ -41,10 +89,17 @@ export default function RideRequestsScreen({ navigation }) {
     setRequests(prev => prev.filter(r => r.rideId !== rideId));
   };
 
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchPendingRequests();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading requests...</Text>
       </View>
     );
   }
@@ -53,10 +108,13 @@ export default function RideRequestsScreen({ navigation }) {
     <View style={GLOBAL_STYLES.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ride Requests</Text>
+        <Text style={styles.headerSubtitle}>{requests.length} pending</Text>
       </View>
       <FlatList
         data={requests}
-        keyExtractor={(item) => item.rideId.toString()}
+        keyExtractor={(item) => item.rideId?.toString() || Math.random().toString()}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         renderItem={({ item }) => (
           <View style={styles.requestCard}>
             <View style={styles.requestHeader}>
@@ -101,11 +159,20 @@ const styles = StyleSheet.create({
     ...GLOBAL_STYLES.heading1,
     color: COLORS.primary,
   },
+  headerSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    marginTop: 2,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
   },
   requestCard: {
     backgroundColor: COLORS.cardBackground,

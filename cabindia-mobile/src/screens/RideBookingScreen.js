@@ -1,12 +1,12 @@
 // cabindia-mobile/src/screens/RideBookingScreen.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, TextInput, 
-  Alert, KeyboardAvoidingView, Platform, Dimensions, 
-  ScrollView, ActivityIndicator, Image 
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  Alert, KeyboardAvoidingView, Platform, Dimensions,
+  ScrollView, ActivityIndicator, Image, FlatList
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,14 +22,56 @@ import Constants from 'expo-constants';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-// Get Google Maps API Key from Constants
-const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey || 
-                           Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
-                           'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
+// Google Maps API Key
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
+  Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+  'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.28;
 const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.65;
 const BOTTOM_SHEET_DRAG_AREA_HEIGHT = 40;
+
+// Google Places Autocomplete function
+const fetchPlaces = async (input) => {
+  if (!input || input.length < 2) return [];
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_MAPS_API_KEY}&components=country:in`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.predictions) {
+      return data.predictions.map(p => ({
+        id: p.place_id,
+        description: p.description,
+        main_text: p.structured_formatting?.main_text || p.description,
+        secondary_text: p.structured_formatting?.secondary_text || '',
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error('Places API error:', error);
+    return [];
+  }
+};
+
+// Get place details (lat/lng) from place_id
+const getPlaceDetails = async (placeId) => {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_MAPS_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data.result && data.result.geometry) {
+      return {
+        latitude: data.result.geometry.location.lat,
+        longitude: data.result.geometry.location.lng,
+        formatted_address: data.result.formatted_address,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Place details error:', error);
+    return null;
+  }
+};
 
 export default function RideBookingScreen() {
   const navigation = useNavigation();
@@ -40,15 +82,26 @@ export default function RideBookingScreen() {
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [loadingGeocode, setLoadingGeocode] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const [sourceSuggestions, setSourceSuggestions] = useState([]);
+  const [destSuggestions, setDestSuggestions] = useState([]);
+  const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [isSourceFocused, setIsSourceFocused] = useState(false);
+  const [isDestFocused, setIsDestFocused] = useState(false);
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
   const mapRef = useRef(null);
+
+  // Debounce timers
+  const sourceDebounce = useRef(null);
+  const destDebounce = useRef(null);
 
   const sheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
   const startSheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
 
   useEffect(() => {
-    sheetHeight.value = withSpring(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, { 
-      damping: 15, 
-      stiffness: 100 
+    sheetHeight.value = withSpring(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, {
+      damping: 15,
+      stiffness: 100
     });
   }, []);
 
@@ -79,20 +132,138 @@ export default function RideBookingScreen() {
     }, [])
   );
 
-  const geocodeAddress = async (address) => {
-    try {
-      // Use Google Maps Geocoding API via backend
-      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`);
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const { lat, lng } = data.results[0].geometry.location;
-        return { latitude: lat, longitude: lng };
+  // Handle source text change with debounce
+  const handleSourceChange = (text) => {
+    setSource(text);
+    setShowSourceSuggestions(true);
+
+    if (sourceDebounce.current) clearTimeout(sourceDebounce.current);
+    sourceDebounce.current = setTimeout(async () => {
+      if (text.length >= 2) {
+        const results = await fetchPlaces(text);
+        setSourceSuggestions(results);
+      } else {
+        setSourceSuggestions([]);
       }
-      return null;
-    } catch (error) {
-      console.error('Geocoding error:', error);
-      return null;
+    }, 300);
+  };
+
+  // Handle destination text change with debounce
+  const handleDestChange = (text) => {
+    setDestination(text);
+    setShowDestSuggestions(true);
+
+    if (destDebounce.current) clearTimeout(destDebounce.current);
+    destDebounce.current = setTimeout(async () => {
+      if (text.length >= 2) {
+        const results = await fetchPlaces(text);
+        setDestSuggestions(results);
+      } else {
+        setDestSuggestions([]);
+      }
+    }, 300);
+  };
+
+  // Select a suggestion for source
+  const selectSourceSuggestion = async (suggestion) => {
+    setSource(suggestion.description);
+    setShowSourceSuggestions(false);
+    setSourceSuggestions([]);
+
+    const details = await getPlaceDetails(suggestion.id);
+    if (details) {
+      setSourceCoords({
+        latitude: details.latitude,
+        longitude: details.longitude,
+      });
+      // Fit map to show location
+      if (mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: details.latitude,
+          longitude: details.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
+        });
+      }
     }
+  };
+
+  // Select a suggestion for destination
+  const selectDestSuggestion = async (suggestion) => {
+    setDestination(suggestion.description);
+    setShowDestSuggestions(false);
+    setDestSuggestions([]);
+
+    const details = await getPlaceDetails(suggestion.id);
+    if (details) {
+      setDestinationCoords({
+        latitude: details.latitude,
+        longitude: details.longitude,
+      });
+    }
+  };
+
+  // Get route between two points
+  const getRoute = async (originLat, originLon, destLat, destLon) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLon}&destination=${destLat},${destLon}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.routes && data.routes.length > 0) {
+        const points = data.routes[0].overview_polyline.points;
+        const decoded = decodePolyline(points);
+        setRouteCoordinates(decoded);
+
+        // Fit map to show entire route
+        if (mapRef.current && decoded.length > 0) {
+          const first = decoded[0];
+          const last = decoded[decoded.length - 1];
+          mapRef.current.fitToCoordinates(
+            [first, last],
+            { edgePadding: { top: 80, right: 80, bottom: 80, left: 80 }, animated: true }
+          );
+        }
+        return decoded;
+      }
+      return [];
+    } catch (error) {
+      console.error('Route error:', error);
+      return [];
+    }
+  };
+
+  // Decode polyline
+  const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, len = encoded.length;
+    let lat = 0, lng = 0;
+
+    while (index < len) {
+      let b, shift = 0, result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push({
+        latitude: lat / 1e5,
+        longitude: lng / 1e5,
+      });
+    }
+    return points;
   };
 
   const handleGetFare = async () => {
@@ -101,35 +272,53 @@ export default function RideBookingScreen() {
       return;
     }
 
-    setLoadingGeocode(true);
-    const sCoords = await geocodeAddress(source);
-    const dCoords = await geocodeAddress(destination);
-    setLoadingGeocode(false);
+    // If we don't have coordinates, geocode
+    if (!sourceCoords || !destinationCoords) {
+      setLoadingGeocode(true);
+      // Try to geocode using Google Maps Geocoding API
+      try {
+        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(source)}&key=${GOOGLE_MAPS_API_KEY}`;
+        const geoResponse = await fetch(geoUrl);
+        const geoData = await geoResponse.json();
+        if (geoData.results && geoData.results.length > 0) {
+          const { lat, lng } = geoData.results[0].geometry.location;
+          setSourceCoords({ latitude: lat, longitude: lng });
+        }
 
-    if (!sCoords || !dCoords) {
+        const geoUrl2 = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`;
+        const geoResponse2 = await fetch(geoUrl2);
+        const geoData2 = await geoResponse2.json();
+        if (geoData2.results && geoData2.results.length > 0) {
+          const { lat, lng } = geoData2.results[0].geometry.location;
+          setDestinationCoords({ latitude: lat, longitude: lng });
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+      }
+      setLoadingGeocode(false);
+    }
+
+    if (!sourceCoords || !destinationCoords) {
       Alert.alert('Location Error', 'Could not find coordinates. Please try again.');
       return;
     }
 
-    setSourceCoords(sCoords);
-    setDestinationCoords(dCoords);
+    // Get route
+    await getRoute(
+      sourceCoords.latitude,
+      sourceCoords.longitude,
+      destinationCoords.latitude,
+      destinationCoords.longitude
+    );
 
-    // Fit map to show both locations
-    if (mapRef.current) {
-      mapRef.current.fitToCoordinates(
-        [sCoords, dCoords],
-        { edgePadding: { top: 50, right: 50, bottom: 50, left: 50 }, animated: true }
-      );
-    }
-
-    // Navigate to FareDetails with real coordinates
+    // Navigate to FareDetails
     navigation.navigate('FareDetails', {
       sourceAddress: source,
       destinationAddress: destination,
-      sourceLat: sCoords.latitude,
-      sourceLon: sCoords.longitude,
-      destinationLat: dCoords.latitude,
-      destinationLon: dCoords.longitude,
+      sourceLat: sourceCoords.latitude,
+      sourceLon: sourceCoords.longitude,
+      destinationLat: destinationCoords.latitude,
+      destinationLon: destinationCoords.longitude,
     });
   };
 
@@ -180,6 +369,34 @@ export default function RideBookingScreen() {
     };
   });
 
+  // Render suggestions list
+  const renderSuggestions = (suggestions, onSelect, show) => {
+    if (!show || suggestions.length === 0) return null;
+    return (
+      <View style={styles.suggestionsContainer}>
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.suggestionItem}
+              onPress={() => onSelect(item)}
+            >
+              <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+              <View style={styles.suggestionTextContainer}>
+                <Text style={styles.suggestionMain}>{item.main_text}</Text>
+                {item.secondary_text ? (
+                  <Text style={styles.suggestionSecondary}>{item.secondary_text}</Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={GLOBAL_STYLES.container}
@@ -228,6 +445,14 @@ export default function RideBookingScreen() {
               pinColor="#f44336"
             />
           )}
+          {routeCoordinates.length > 0 && (
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeColor={COLORS.primary}
+              strokeWidth={3}
+              lineDashPattern={[0]}
+            />
+          )}
         </MapView>
       </Animated.View>
 
@@ -241,15 +466,15 @@ export default function RideBookingScreen() {
           </View>
         </GestureDetector>
 
-        <ScrollView 
-          contentContainerStyle={styles.bottomSheetContent} 
+        <ScrollView
+          contentContainerStyle={styles.bottomSheetContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../../assets/icon.png')} 
+              <Image
+                source={require('../../assets/icon.png')}
                 style={styles.logoIcon}
                 defaultSource={require('../../assets/icon.png')}
               />
@@ -268,9 +493,20 @@ export default function RideBookingScreen() {
                 placeholder="Pickup Location"
                 placeholderTextColor={COLORS.textMuted}
                 value={source}
-                onChangeText={setSource}
+                onChangeText={handleSourceChange}
+                onFocus={() => {
+                  setIsSourceFocused(true);
+                  setShowSourceSuggestions(true);
+                }}
+                onBlur={() => {
+                  // Delay hiding suggestions to allow selection
+                  setTimeout(() => {
+                    setShowSourceSuggestions(false);
+                  }, 200);
+                }}
               />
             </View>
+            {renderSuggestions(sourceSuggestions, selectSourceSuggestion, showSourceSuggestions)}
 
             <View style={styles.inputDivider}>
               <View style={styles.dividerLine} />
@@ -287,14 +523,24 @@ export default function RideBookingScreen() {
                 placeholder="Drop-off Location"
                 placeholderTextColor={COLORS.textMuted}
                 value={destination}
-                onChangeText={setDestination}
+                onChangeText={handleDestChange}
+                onFocus={() => {
+                  setIsDestFocused(true);
+                  setShowDestSuggestions(true);
+                }}
+                onBlur={() => {
+                  setTimeout(() => {
+                    setShowDestSuggestions(false);
+                  }, 200);
+                }}
               />
             </View>
+            {renderSuggestions(destSuggestions, selectDestSuggestion, showDestSuggestions)}
           </View>
 
-          <TouchableOpacity 
-            style={styles.findRideButton} 
-            onPress={handleGetFare} 
+          <TouchableOpacity
+            style={styles.findRideButton}
+            onPress={handleGetFare}
             disabled={loadingGeocode}
             activeOpacity={0.8}
           >
@@ -404,11 +650,14 @@ const styles = StyleSheet.create({
     borderColor: COLORS.borderColor,
     paddingHorizontal: 16,
     marginBottom: 20,
+    position: 'relative',
+    zIndex: 10,
   },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
+    zIndex: 10,
   },
   inputIconContainer: {
     width: 32,
@@ -439,6 +688,36 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: COLORS.primary,
     marginHorizontal: 8,
+  },
+  suggestionsContainer: {
+    backgroundColor: COLORS.cardBackground,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+    borderRadius: 8,
+    maxHeight: 200,
+    position: 'relative',
+    zIndex: 20,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderColor,
+  },
+  suggestionTextContainer: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  suggestionMain: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+  suggestionSecondary: {
+    color: COLORS.textMuted,
+    fontSize: 12,
   },
   findRideButton: {
     flexDirection: 'row',

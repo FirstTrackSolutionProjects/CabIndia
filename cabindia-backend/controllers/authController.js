@@ -2,6 +2,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const axios = require('axios'); // Add this dependency
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -144,6 +145,106 @@ exports.login = async (req, res) => {
       success: false, 
       message: 'Server error during login',
       error: error.message 
+    });
+  }
+};
+
+// @route   POST /api/auth/google
+// @desc    Authenticate user with Google OAuth
+exports.googleLogin = async (req, res) => {
+  console.log('Google login request received');
+  const { idToken, email, name, picture } = req.body;
+
+  if (!idToken || !email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields: idToken and email'
+    });
+  }
+
+  try {
+    // Verify the Google ID Token
+    const googleResponse = await axios.get(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
+    );
+
+    const payload = googleResponse.data;
+
+    // Verify the email matches
+    if (payload.email !== email) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Google token'
+      });
+    }
+
+    // Check if user exists with this email
+    let [users] = await db.execute('SELECT id, name, email FROM users WHERE email = ?', [email]);
+
+    let userId;
+    let userName = name || email.split('@')[0];
+
+    if (users.length === 0) {
+      // Create a new user with Google credentials
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      const [result] = await db.execute(
+        'INSERT INTO users (name, email, mobile, password) VALUES (?, ?, ?, ?)',
+        [userName, email, 'google_user', hashedPassword]
+      );
+      
+      userId = result.insertId;
+      console.log('New Google user created:', email);
+    } else {
+      userId = users[0].id;
+      userName = users[0].name;
+    }
+
+    // Generate JWT
+    const payloadJWT = {
+      user: {
+        id: userId,
+        email: email,
+        name: userName,
+      },
+    };
+
+    jwt.sign(
+      payloadJWT,
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+      (err, token) => {
+        if (err) {
+          console.error('JWT error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'Error generating token'
+          });
+        }
+
+        console.log('Google login successful for:', email);
+        res.json({
+          success: true,
+          message: 'Authentication successful',
+          token,
+          user: {
+            id: userId,
+            name: userName,
+            email: email,
+            picture: picture || null
+          }
+        });
+      }
+    );
+
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during Google login',
+      error: error.message
     });
   }
 };

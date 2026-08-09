@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Switch, 
-  ScrollView, ActivityIndicator, Alert
+  ScrollView, ActivityIndicator, Alert, AppState, RefreshControl
 } from 'react-native';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, FONTS } from '../styles/theme';
@@ -23,8 +23,11 @@ export default function DashboardScreen({ navigation }) {
     todayEarnings: 0,
     rating: 4.8,
     totalRides: 0,
+    status: 'offline',
+    isAvailable: false,
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [currentRide, setCurrentRide] = useState(null);
   const [rideRequests, setRideRequests] = useState([]);
   const socketRef = useRef(null);
@@ -34,7 +37,14 @@ export default function DashboardScreen({ navigation }) {
   // Define handlers with useCallback to prevent recreation
   const handleNewRideRequest = useCallback((data) => {
     console.log('New ride request:', data);
-    setRideRequests(prev => [data, ...prev]);
+    setRideRequests(prev => [{
+      rideId: data.rideId || data.id || Date.now(),
+      pickupAddress: data.pickupAddress || 'Near you',
+      dropoffAddress: data.dropoffAddress || 'Destination',
+      estimatedPrice: data.estimatedPrice || '0',
+      vehicleType: data.vehicleType || 'Cab',
+      ...data
+    }, ...prev]);
     
     Alert.alert(
       '🚗 New Ride Request!',
@@ -116,8 +126,11 @@ export default function DashboardScreen({ navigation }) {
     });
 
     socket.on('new_ride_request', handleNewRideRequest);
-    socket.on('ride_assigned', handleRideAssigned);
+    socket.on('driver_assigned', handleRideAssigned);
     socket.on('ride_cancelled', handleRideCancelled);
+    socket.on('ride_taken', (data) => {
+      setRideRequests(prev => prev.filter(r => r.rideId !== data.rideId));
+    });
 
     return () => {
       socket.disconnect();
@@ -125,7 +138,7 @@ export default function DashboardScreen({ navigation }) {
         clearInterval(locationInterval.current);
       }
     };
-  }, [handleNewRideRequest, handleRideAssigned, handleRideCancelled, isOnline, location, userData?.id]);
+  }, [handleNewRideRequest, handleRideAssigned, handleRideCancelled]);
 
   // Request location permission and start tracking
   useEffect(() => {
@@ -171,14 +184,28 @@ export default function DashboardScreen({ navigation }) {
     try {
       setLoading(true);
       const response = await api.get('/drivers/stats');
+      console.log('Dashboard stats response:', response.data);
       if (response.data.success) {
         setStats(response.data.data);
+        // Sync online status with server
+        if (response.data.data.isAvailable) {
+          setIsOnline(true);
+        }
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+      if (error.response?.status === 401) {
+        // Handle unauthorized - maybe logout
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchStats();
   };
 
   const toggleOnlineStatus = async () => {
@@ -187,6 +214,11 @@ export default function DashboardScreen({ navigation }) {
       
       let currentLocation = location;
       if (newStatus) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission Required', 'Location permission is needed to go online.');
+          return;
+        }
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
@@ -202,6 +234,8 @@ export default function DashboardScreen({ navigation }) {
         lat: currentLocation?.latitude || null,
         lng: currentLocation?.longitude || null,
       });
+
+      console.log('Status update response:', response.data);
 
       if (response.data.success) {
         setIsOnline(newStatus);
@@ -231,10 +265,15 @@ export default function DashboardScreen({ navigation }) {
             'You will not receive ride requests.'
           );
         }
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update status.');
       }
     } catch (error) {
       console.error('Toggle status error:', error);
-      Alert.alert('Error', 'Failed to update status. Please try again.');
+      Alert.alert(
+        'Error',
+        error.response?.data?.message || 'Failed to update status. Please try again.'
+      );
     }
   };
 
@@ -246,6 +285,8 @@ export default function DashboardScreen({ navigation }) {
         setRideRequests(prev => prev.filter(r => r.rideId !== rideId));
         Alert.alert('✅ Ride Accepted!', 'Navigate to the pickup location.');
         navigation.navigate('Map', { rideId });
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to accept ride.');
       }
     } catch (error) {
       console.error('Accept ride error:', error);
@@ -261,12 +302,20 @@ export default function DashboardScreen({ navigation }) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={COLORS.primary} />
+      }
+      showsVerticalScrollIndicator={false}
+    >
       {/* Status Banner */}
       <View style={styles.statusBanner}>
         <View style={styles.statusLeft}>
@@ -284,12 +333,15 @@ export default function DashboardScreen({ navigation }) {
       {/* Pending Ride Requests */}
       {rideRequests.length > 0 && (
         <View style={styles.requestsCard}>
-          <Text style={styles.requestsTitle}>📋 Pending Requests ({rideRequests.length})</Text>
+          <View style={styles.requestsHeader}>
+            <Text style={styles.requestsTitle}>📋 Pending Requests</Text>
+            <Text style={styles.requestsCount}>{rideRequests.length}</Text>
+          </View>
           {rideRequests.slice(0, 3).map((req, index) => (
             <View key={index} style={styles.requestItem}>
               <View style={styles.requestInfo}>
-                <Text style={styles.requestPickup}>📍 {req.pickupAddress || 'Pickup'}</Text>
-                <Text style={styles.requestDropoff}>🏁 {req.dropoffAddress || 'Dropoff'}</Text>
+                <Text style={styles.requestPickup} numberOfLines={1}>📍 {req.pickupAddress || 'Pickup'}</Text>
+                <Text style={styles.requestDropoff} numberOfLines={1}>🏁 {req.dropoffAddress || 'Dropoff'}</Text>
                 <Text style={styles.requestFare}>₹{req.estimatedPrice || '0'}</Text>
               </View>
               <View style={styles.requestActions}>
@@ -330,7 +382,7 @@ export default function DashboardScreen({ navigation }) {
           <Text style={styles.statLabel}>Today's Earnings</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={styles.statValue}>{stats.rating}★</Text>
+          <Text style={styles.statValue}>{stats.rating || 0}★</Text>
           <Text style={styles.statLabel}>Your Rating</Text>
         </View>
         <View style={styles.statCard}>
@@ -345,26 +397,34 @@ export default function DashboardScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => navigation.navigate('Requests')}
         >
-          <Ionicons name="car" size={24} color={COLORS.primary} />
-          <Text style={styles.actionLabel}>Ride Requests</Text>
+          <View style={styles.actionIconWrapper}>
+            <Ionicons name="car" size={22} color={COLORS.primary} />
+          </View>
+          <Text style={styles.actionLabel}>Requests</Text>
           {rideRequests.length > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{rideRequests.length}</Text>
             </View>
           )}
         </TouchableOpacity>
+        
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => navigation.navigate('Earnings')}
         >
-          <Ionicons name="cash" size={24} color={COLORS.primary} />
+          <View style={styles.actionIconWrapper}>
+            <Ionicons name="cash" size={22} color={COLORS.primary} />
+          </View>
           <Text style={styles.actionLabel}>Earnings</Text>
         </TouchableOpacity>
+        
         <TouchableOpacity 
           style={styles.actionButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <Ionicons name="person" size={24} color={COLORS.primary} />
+          <View style={styles.actionIconWrapper}>
+            <Ionicons name="person" size={22} color={COLORS.primary} />
+          </View>
           <Text style={styles.actionLabel}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -372,7 +432,10 @@ export default function DashboardScreen({ navigation }) {
       {/* Current Ride Status */}
       {currentRide && (
         <View style={styles.currentRideCard}>
-          <Text style={styles.rideTitle}>🚗 Current Ride</Text>
+          <View style={styles.currentRideHeader}>
+            <Ionicons name="car" size={20} color={COLORS.primary} />
+            <Text style={styles.rideTitle}>Current Ride</Text>
+          </View>
           <Text style={styles.rideStatus}>Status: {currentRide.status}</Text>
           <TouchableOpacity 
             style={styles.viewRideButton}
@@ -385,17 +448,23 @@ export default function DashboardScreen({ navigation }) {
 
       {/* Location Status */}
       <View style={styles.locationStatus}>
-        <Ionicons name="location" size={16} color={location ? '#22c55e' : '#ef4444'} />
+        <Ionicons 
+          name="location" 
+          size={16} 
+          color={location ? '#22c55e' : '#ef4444'} 
+        />
         <Text style={styles.locationText}>
-          {location ? 'Location available' : 'Location unavailable'}
+          {location ? '📍 Location available' : '📍 Location unavailable'}
         </Text>
+      </View>
+
+      {/* Version Info */}
+      <View style={styles.versionInfo}>
+        <Text style={styles.versionText}>CabIndia Captain v1.0.0</Text>
       </View>
     </ScrollView>
   );
 }
-
-// Add AppState import at top
-import { AppState } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -411,6 +480,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
+    fontSize: SIZES.medium,
   },
   statusBanner: {
     flexDirection: 'row',
@@ -452,11 +526,21 @@ const styles = StyleSheet.create({
     padding: SIZES.padding,
     marginBottom: SIZES.margin * 2,
   },
+  requestsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.margin,
+  },
   requestsTitle: {
     color: COLORS.text,
     fontFamily: FONTS.bold,
     fontSize: SIZES.medium,
-    marginBottom: SIZES.margin,
+  },
+  requestsCount: {
+    color: COLORS.primary,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
   },
   requestItem: {
     backgroundColor: COLORS.inputBackground,
@@ -560,10 +644,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
+  actionIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: `${COLORS.primary}1A`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   actionLabel: {
     color: COLORS.text,
     fontSize: SIZES.small,
-    marginTop: 4,
     fontFamily: FONTS.semibold,
   },
   badge: {
@@ -590,6 +682,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     padding: SIZES.padding * 1.5,
     marginBottom: SIZES.margin * 2,
+  },
+  currentRideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
   },
   rideTitle: {
     color: COLORS.text,
@@ -621,6 +719,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   locationText: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+  },
+  versionInfo: {
+    paddingTop: SIZES.margin * 2,
+    alignItems: 'center',
+  },
+  versionText: {
     color: COLORS.textMuted,
     fontSize: SIZES.small,
   },
