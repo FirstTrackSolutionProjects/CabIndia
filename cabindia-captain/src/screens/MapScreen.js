@@ -14,10 +14,16 @@ import Constants from 'expo-constants';
 
 const { height } = Dimensions.get('window');
 
-const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
-const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey || 
-                           Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
-                           'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
+// ============================================
+// BACKEND URL - Using Constants exclusively
+// ============================================
+const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 
+                    'https://cabindia-mobile.onrender.com';
+
+// Google Maps API Keys - Fixed to read from correct location
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
+                            Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+                            'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 // Import API helper
 import api from '../utils/api';
@@ -321,7 +327,7 @@ export default function MapScreen() {
         loadingEnabled
         loadingIndicatorColor={COLORS.primary}
         loadingBackgroundColor={COLORS.background}
-        apiKey={GOOGLE_MAPS_API_KEY}
+        googleMapsApiKey={GOOGLE_MAPS_API_KEY}
       >
         {/* Driver Location Marker */}
         {currentLocation && (

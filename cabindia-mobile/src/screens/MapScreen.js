@@ -26,21 +26,16 @@ const { height, width } = Dimensions.get('window');
 // ============================================
 // BACKEND URL - Using Constants exclusively
 // ============================================
-const BACKEND_URL = Constants.expoConfig?.extra?.socketUrl || 
-                    Constants.expoConfig?.extra?.apiUrl ||
+const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 
                     'https://cabindia-mobile.onrender.com';
 
-// Google Maps API Keys from environment - Using Constants exclusively
-const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey ||
-                            '';
-
-// Google OAuth Config - Using Constants exclusively
-const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || 
-                         '';
+// Google Maps API Keys - Fixed to read from correct location
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
+                            Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+                            'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 console.log('🔌 Socket connecting to:', BACKEND_URL);
 console.log('🗺️ Google Maps API Key configured:', !!GOOGLE_MAPS_API_KEY);
-console.log('🔑 Google Client ID configured:', !!GOOGLE_CLIENT_ID);
 
 // Create socket connection
 let socket = null;

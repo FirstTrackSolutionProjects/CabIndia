@@ -22,10 +22,10 @@ import Constants from 'expo-constants';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-// Google Maps API Key
+// Google Maps API Key - Fixed to read from correct location
 const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
-  Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
-  'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
+                            Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+                            'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.28;
 const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.65;
@@ -419,7 +419,7 @@ export default function RideBookingScreen() {
           loadingIndicatorColor={COLORS.primary}
           loadingBackgroundColor={COLORS.background}
           onMapReady={() => setMapReady(true)}
-          apiKey={GOOGLE_MAPS_API_KEY}
+          googleMapsApiKey={GOOGLE_MAPS_API_KEY}
         >
           {currentLocation && (
             <Marker
