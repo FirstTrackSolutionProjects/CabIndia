@@ -1,19 +1,24 @@
 // cabindia-mobile/src/screens/FareDetailsScreen.js
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Feather } from '@expo/vector-icons';
 import { calculateDistance } from '../utils/locationUtils';
 import api from '../utils/api';
+import Constants from 'expo-constants';
+
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey || 
+                           Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+                           'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 const rideTypes = [
-  { type: "Bike", pricePerKm: 7, emoji: "🏍️" },
-  { type: "Auto", pricePerKm: 10, emoji: "🛺" },
-  { type: "Mini", pricePerKm: 12, emoji: "🚗" },
-  { type: "Sedan", pricePerKm: 15, emoji: "🚙" },
-  { type: "Parcel", pricePerKm: 8, emoji: "📦" },
-  { type: "Rental", pricePerKm: 20, emoji: "⏱️" },
+  { type: "Bike", pricePerKm: 7, emoji: "🏍️", minFare: 30 },
+  { type: "Auto", pricePerKm: 10, emoji: "🛺", minFare: 40 },
+  { type: "Mini", pricePerKm: 12, emoji: "🚗", minFare: 60 },
+  { type: "Sedan", pricePerKm: 15, emoji: "🚙", minFare: 80 },
+  { type: "Parcel", pricePerKm: 8, emoji: "📦", minFare: 35 },
+  { type: "Rental", pricePerKm: 20, emoji: "⏱️", minFare: 150 },
 ];
 
 const paymentOptions = [
@@ -36,11 +41,52 @@ export default function FareDetailsScreen() {
   const [selectedPayment, setSelectedPayment] = useState("Cash");
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedRide, setSelectedRide] = useState(null);
+  const [distance, setDistance] = useState(0);
+  const [loadingDistance, setLoadingDistance] = useState(true);
+  const [realDistance, setRealDistance] = useState(null);
 
-  // Calculate distance based on passed coordinates
-  const distance = (sourceLat && sourceLon && destinationLat && destinationLon)
-    ? calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon)
-    : 0; // Default to 0 if coordinates are missing
+  // Get real distance using Google Maps Distance Matrix API
+  useEffect(() => {
+    const getRealDistance = async () => {
+      if (!sourceLat || !sourceLon || !destinationLat || !destinationLon) {
+        setLoadingDistance(false);
+        return;
+      }
+
+      try {
+        setLoadingDistance(true);
+        const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${sourceLat},${sourceLon}&destinations=${destinationLat},${destinationLon}&key=${GOOGLE_MAPS_API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.rows && data.rows.length > 0 && data.rows[0].elements && data.rows[0].elements.length > 0) {
+          const element = data.rows[0].elements[0];
+          if (element.status === 'OK') {
+            const distanceInKm = element.distance.value / 1000; // Convert meters to km
+            setRealDistance(distanceInKm);
+            setDistance(distanceInKm);
+          } else {
+            // Fallback to calculated distance
+            const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
+            setDistance(calcDist);
+          }
+        } else {
+          // Fallback to calculated distance
+          const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
+          setDistance(calcDist);
+        }
+      } catch (error) {
+        console.error('Distance API error:', error);
+        // Fallback to calculated distance
+        const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
+        setDistance(calcDist);
+      } finally {
+        setLoadingDistance(false);
+      }
+    };
+
+    getRealDistance();
+  }, [sourceLat, sourceLon, destinationLat, destinationLon]);
 
   const selectedPaymentMethod = paymentOptions.find(p => p.name === selectedPayment);
 
@@ -54,12 +100,11 @@ export default function FareDetailsScreen() {
       return;
     }
 
-    const minFare = selectedRide.pricePerKm * distance;
-    const maxFare = Math.ceil(minFare * 1.2); // 20% buffer
+    const minFare = Math.max(selectedRide.minFare, selectedRide.pricePerKm * distance);
+    const maxFare = Math.ceil(minFare * 1.2);
     const estimatedFareStr = `${Math.floor(minFare)} - ${maxFare}`;
 
     try {
-      // 1. Request the ride via API
       const response = await api.post('/rides/request', {
         pickupAddress: sourceAddress,
         dropoffAddress: destinationAddress,
@@ -68,11 +113,11 @@ export default function FareDetailsScreen() {
         pickupLon: sourceLon,
         dropoffLat: destinationLat,
         dropoffLon: destinationLon,
-        estimatedPrice: estimatedFareStr
+        estimatedPrice: estimatedFareStr,
+        distanceKm: distance.toFixed(1)
       });
 
       if (response.data.success) {
-        // 2. Navigate to Map with the newly created rideId
         navigation.navigate('Map', {
           rideId: response.data.rideId,
           ride: selectedRide.type,
@@ -84,7 +129,8 @@ export default function FareDetailsScreen() {
           dropoffLat: destinationLat,
           dropoffLon: destinationLon,
           paymentMethod: selectedPayment,
-          estimatedFare: estimatedFareStr
+          estimatedFare: estimatedFareStr,
+          distance: distance.toFixed(1)
         });
       } else {
         Alert.alert('Error', response.data.message || 'Failed to request ride.');
@@ -94,6 +140,15 @@ export default function FareDetailsScreen() {
       Alert.alert('Error', 'An error occurred while requesting your ride. Please check your connection.');
     }
   };
+
+  if (loadingDistance) {
+    return (
+      <View style={[GLOBAL_STYLES.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Calculating distance...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={GLOBAL_STYLES.container} contentContainerStyle={styles.scrollContent}>
@@ -137,7 +192,7 @@ export default function FareDetailsScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Select Service</Text>
         {rideTypes.map((ride, idx) => {
-          const minFare = ride.pricePerKm * distance;
+          const minFare = Math.max(ride.minFare, ride.pricePerKm * distance);
           const maxFare = Math.ceil(minFare * 1.2);
           const isSelected = selectedRide?.type === ride.type;
 
@@ -223,6 +278,17 @@ const styles = StyleSheet.create({
     padding: SIZES.padding,
     paddingBottom: SIZES.padding * 4,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  loadingText: {
+    color: COLORS.textMuted,
+    marginTop: SIZES.margin,
+    fontSize: SIZES.medium,
+  },
   header: {
     marginBottom: SIZES.margin * 3,
     alignItems: 'center',
@@ -281,16 +347,6 @@ const styles = StyleSheet.create({
   highlightText: {
     color: COLORS.primary,
     fontFamily: FONTS.bold,
-  },
-  clearButton: {
-    alignSelf: 'center',
-    marginVertical: SIZES.margin,
-    color: COLORS.textMuted,
-    fontSize: SIZES.medium,
-    lineHeight: SIZES.medium,
-    height: SIZES.medium * 2,
-    justifyContent: 'center',
-    textAlignVertical: 'center',
   },
   sectionTitle: {
     ...GLOBAL_STYLES.text,
