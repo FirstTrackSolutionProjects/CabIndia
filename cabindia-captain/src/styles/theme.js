@@ -5,8 +5,8 @@ const { width, height } = Dimensions.get('window');
 
 export const COLORS = {
   primary: '#facc15',
-  secondary: '#f97316',
-  tertiary: '#22c55e',
+  secondary: '#f97316', // Orange for "IN"
+  tertiary: '#22c55e',   // Green for "DIA"
   background: '#0a0a0a',
   cardBackground: '#111111',
   text: '#ffffff',
@@ -14,6 +14,13 @@ export const COLORS = {
   inputBackground: '#1f2937',
   borderColor: '#374151',
   error: '#ef4444',
+  white: '#ffffff',
+};
+
+export const BRAND_COLORS = {
+  cab: '#ffffff',      // White
+  in: '#f97316',       // Orange
+  dia: '#22c55e',      // Green
 };
 
 export const SIZES = {

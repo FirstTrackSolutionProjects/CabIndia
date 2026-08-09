@@ -17,7 +17,7 @@ import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-m
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons/Feather';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 

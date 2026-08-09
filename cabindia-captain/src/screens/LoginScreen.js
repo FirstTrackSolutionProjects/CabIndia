@@ -10,9 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome5, Feather } from '@expo/vector-icons';
+import { FontAwesome5 } from '@expo/vector-icons/FontAwesome5';
+import { Feather } from '@expo/vector-icons/Feather';
 import { AuthContext } from '../../App';
-import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
+import { COLORS, SIZES, GLOBAL_STYLES, FONTS, BRAND_COLORS } from '../styles/theme';
+import BrandText from '../components/BrandText';
 import api from '../utils/api';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
@@ -26,7 +28,6 @@ const LoginScreen = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Configure Google Sign-In
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
@@ -70,10 +71,8 @@ const LoginScreen = () => {
     try {
       setGoogleLoading(true);
       
-      // Check if Google Play Services are available
       await GoogleSignin.hasPlayServices();
       
-      // Get user info
       const userInfo = await GoogleSignin.signIn();
       console.log('Google user info:', userInfo);
       
@@ -83,7 +82,6 @@ const LoginScreen = () => {
         throw new Error('No ID token received from Google');
       }
 
-      // Send to backend
       const response = await api.post('/api/auth/google', {
         idToken: idToken,
         email: user.email,
@@ -103,7 +101,6 @@ const LoginScreen = () => {
       console.error('Google sign-in error:', error);
       
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled the login flow
         console.log('User cancelled Google sign-in');
       } else if (error.code === statusCodes.IN_PROGRESS) {
         Alert.alert('Error', 'Google sign-in is already in progress.');
@@ -126,7 +123,7 @@ const LoginScreen = () => {
             <View style={styles.iconContainer}>
               <FontAwesome5 name="user-circle" size={26} color={COLORS.primary} />
             </View>
-            <Text style={styles.brandSubtitle}>CabIndia Captain</Text>
+            <BrandText style={styles.brandSubtitle} />
             <Text style={styles.title}>
               Welcome <Text style={styles.titleHighlight}>Back</Text>
             </Text>
@@ -260,8 +257,6 @@ const styles = StyleSheet.create({
     fontSize: SIZES.small - 1,
     fontFamily: FONTS.bold,
     letterSpacing: 2,
-    color: `${COLORS.primary}99`,
-    textTransform: 'uppercase',
     marginBottom: SIZES.margin / 2,
   },
   title: {

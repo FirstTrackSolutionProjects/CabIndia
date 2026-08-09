@@ -2,19 +2,19 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons/Feather';
+import BrandText from '../components/BrandText';
 
 export default function WelcomeScreen({ navigation }) {
   return (
     <View style={GLOBAL_STYLES.container}>
       <View style={styles.hero}>
-        {/* Logo - try loading from assets, fallback to text if missing */}
         <Image 
           source={require('../../assets/icon.png')} 
           style={styles.logo}
           defaultSource={require('../../assets/icon.png')}
         />
-        <Text style={styles.title}>GET YOUR <Text style={styles.highlight}>RIDE</Text> NOW</Text>
+        <BrandText style={styles.brandTitle} />
         <Text style={styles.subtitle}>AUTO • BIKES • CARS</Text>
 
         <View style={styles.authButtons}>
@@ -27,7 +27,6 @@ export default function WelcomeScreen({ navigation }) {
         </View>
       </View>
       
-      {/* Support Chat Floating Button */}
       <TouchableOpacity 
         style={styles.chatFab} 
         onPress={() => navigation.navigate('Chat')}
@@ -46,8 +45,10 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: SIZES.margin * 3,
   },
-  title: { color: COLORS.text, fontSize: SIZES.h1, fontFamily: FONTS.bold, textAlign: 'center' },
-  highlight: { color: COLORS.primary, fontStyle: 'italic' },
+  brandTitle: {
+    fontSize: SIZES.h1,
+    marginBottom: SIZES.margin,
+  },
   subtitle: { color: COLORS.textMuted, marginTop: SIZES.margin, letterSpacing: 2, fontSize: SIZES.small },
   
   authButtons: {
