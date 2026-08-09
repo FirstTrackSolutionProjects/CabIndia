@@ -18,8 +18,14 @@ import Animated, {
   interpolate,
   Extrapolate,
 } from 'react-native-reanimated';
+import Constants from 'expo-constants';
 
 const { height: screenHeight } = Dimensions.get('window');
+
+// Get Google Maps API Key from Constants
+const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey || 
+                           Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
+                           'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
 const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.28;
 const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.65;
@@ -33,6 +39,7 @@ export default function RideBookingScreen() {
   const [sourceCoords, setSourceCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [loadingGeocode, setLoadingGeocode] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef(null);
 
   const sheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
@@ -48,21 +55,25 @@ export default function RideBookingScreen() {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission denied', 'Location access is needed for rides.');
-          return;
-        }
-        const location = await Location.getCurrentPositionAsync({});
-        const region = {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        };
-        setCurrentLocation(region);
-        if (mapRef.current) {
-          mapRef.current.animateToRegion(region);
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission denied', 'Location access is needed for rides.');
+            return;
+          }
+          const location = await Location.getCurrentPositionAsync({});
+          const region = {
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          };
+          setCurrentLocation(region);
+          if (mapRef.current) {
+            mapRef.current.animateToRegion(region);
+          }
+        } catch (error) {
+          console.error('Location error:', error);
         }
       })();
     }, [])
@@ -70,17 +81,18 @@ export default function RideBookingScreen() {
 
   const geocodeAddress = async (address) => {
     try {
-      const result = await Location.geocodeAsync(address);
-      if (result && result.length > 0) {
-        return {
-          latitude: result[0].latitude,
-          longitude: result[0].longitude,
-        };
+      // Use Google Maps Geocoding API via backend
+      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`);
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const { lat, lng } = data.results[0].geometry.location;
+        return { latitude: lat, longitude: lng };
       }
+      return null;
     } catch (error) {
       console.error('Geocoding error:', error);
+      return null;
     }
-    return null;
   };
 
   const handleGetFare = async () => {
@@ -102,6 +114,15 @@ export default function RideBookingScreen() {
     setSourceCoords(sCoords);
     setDestinationCoords(dCoords);
 
+    // Fit map to show both locations
+    if (mapRef.current) {
+      mapRef.current.fitToCoordinates(
+        [sCoords, dCoords],
+        { edgePadding: { top: 50, right: 50, bottom: 50, left: 50 }, animated: true }
+      );
+    }
+
+    // Navigate to FareDetails with real coordinates
     navigation.navigate('FareDetails', {
       sourceAddress: source,
       destinationAddress: destination,
@@ -180,6 +201,8 @@ export default function RideBookingScreen() {
           loadingEnabled
           loadingIndicatorColor={COLORS.primary}
           loadingBackgroundColor={COLORS.background}
+          onMapReady={() => setMapReady(true)}
+          apiKey={GOOGLE_MAPS_API_KEY}
         >
           {currentLocation && (
             <Marker
