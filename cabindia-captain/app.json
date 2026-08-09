@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "CabIndia Captain needs your location to accept nearby ride requests.",
-        "NSLocationAlwaysUsageDescription": "CabIndia Captain needs your location to track your rides and show your availability."
+        "NSLocationAlwaysUsageDescription": "CabIndia Captain needs your location to track your rides and show your availability.",
+        "GOOGLE_MAPS_API_KEY": "AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY"
       }
     },
     "android": {
@@ -30,7 +31,12 @@
         "ACCESS_COARSE_LOCATION",
         "FOREGROUND_SERVICE",
         "ACCESS_BACKGROUND_LOCATION"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -39,7 +45,15 @@
       "eas": {
         "projectId": "31b38e4a-dff1-43ad-afbb-ae492ca6181c"
       },
-      "apiUrl": "https://cabindia-mobile.onrender.com"
+      "apiUrl": "https://cabindia-mobile.onrender.com",
+      "socketUrl": "https://cabindia-mobile.onrender.com",
+      "googleProjectId": "single-obelisk-504908-p6",
+      "googleAuthUri": "https://accounts.google.com/o/oauth2/auth",
+      "googleTokenUri": "https://oauth2.googleapis.com/token",
+      "appName": "CabIndia Captain",
+      "appVersion": "1.0.0",
+      "appEnv": "production",
+      "enableGoogleLogin": true
     },
     "plugins": [
       "expo-font",
