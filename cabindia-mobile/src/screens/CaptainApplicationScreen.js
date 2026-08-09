@@ -7,7 +7,7 @@ import {
 import api from '../utils/api';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons/Feather';
 
 const CaptainApplicationScreen = ({ navigation }) => {
   const { userData } = useContext(AuthContext);

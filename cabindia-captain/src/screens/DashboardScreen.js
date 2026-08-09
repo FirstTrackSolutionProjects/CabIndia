@@ -5,8 +5,9 @@ import {
   ScrollView, ActivityIndicator, Alert, AppState, RefreshControl
 } from 'react-native';
 import { AuthContext } from '../../App';
-import { COLORS, SIZES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { COLORS, SIZES, FONTS, BRAND_COLORS } from '../styles/theme';
+import BrandText from '../components/BrandText';
+import { Ionicons } from '@expo/vector-icons/Ionicons';
 import * as Location from 'expo-location';
 import api from '../utils/api';
 import { io } from 'socket.io-client';
@@ -34,7 +35,6 @@ export default function DashboardScreen({ navigation }) {
   const locationInterval = useRef(null);
   const appState = useRef(AppState.currentState);
 
-  // Define handlers with useCallback to prevent recreation
   const handleNewRideRequest = useCallback((data) => {
     console.log('New ride request:', data);
     setRideRequests(prev => [{
@@ -105,7 +105,6 @@ export default function DashboardScreen({ navigation }) {
     appState.current = nextAppState;
   }, [requestLocationPermission]);
 
-  // Initialize socket connection
   useEffect(() => {
     const socket = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
@@ -140,7 +139,6 @@ export default function DashboardScreen({ navigation }) {
     };
   }, [handleNewRideRequest, handleRideAssigned, handleRideCancelled]);
 
-  // Request location permission and start tracking
   useEffect(() => {
     requestLocationPermission();
     fetchStats();
@@ -187,7 +185,6 @@ export default function DashboardScreen({ navigation }) {
       console.log('Dashboard stats response:', response.data);
       if (response.data.success) {
         setStats(response.data.data);
-        // Sync online status with server
         if (response.data.data.isAvailable) {
           setIsOnline(true);
         }
@@ -316,6 +313,12 @@ export default function DashboardScreen({ navigation }) {
       }
       showsVerticalScrollIndicator={false}
     >
+      {/* Header with Brand */}
+      <View style={styles.header}>
+        <BrandText style={styles.brandText} />
+        <Text style={styles.headerSubtitle}>Captain Dashboard</Text>
+      </View>
+
       {/* Status Banner */}
       <View style={styles.statusBanner}>
         <View style={styles.statusLeft}>
@@ -474,6 +477,18 @@ const styles = StyleSheet.create({
   content: {
     padding: SIZES.padding,
     paddingBottom: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: SIZES.margin * 2,
+  },
+  brandText: {
+    fontSize: SIZES.h1,
+  },
+  headerSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,

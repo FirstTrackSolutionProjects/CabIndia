@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons/Ionicons';
 
 export default function MoreScreen() {
   const navigation = useNavigation();

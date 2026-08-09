@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons/Ionicons';
 import api from '../utils/api';
 
 const RideItem = ({ ride }) => {

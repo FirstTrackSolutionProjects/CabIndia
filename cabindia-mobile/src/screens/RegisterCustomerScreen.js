@@ -4,7 +4,8 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
   Alert, ActivityIndicator, ScrollView 
 } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons/Feather';
+import { FontAwesome5 } from '@expo/vector-icons/FontAwesome5';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
