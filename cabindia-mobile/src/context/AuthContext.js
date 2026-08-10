@@ -34,6 +34,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = async (user) => {
+    try {
+      setUserData(user);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      console.log('User data updated');
+    } catch (error) {
+      console.error('Update user error:', error);
+    }
+  };
+
   const checkLoginStatus = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
@@ -55,7 +65,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ login, logout, isLoading, userToken, userData }}>
+    <AuthContext.Provider value={{ 
+      login, 
+      logout, 
+      updateUser,
+      isLoading, 
+      userToken, 
+      userData 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,15 +1,72 @@
 // cabindia-mobile/src/screens/ProfileScreen.js
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useContext, useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, Alert, 
+  ActivityIndicator, ScrollView, TextInput, Modal,
+  Switch, KeyboardAvoidingView, Platform
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import api from '../utils/api';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { userData, logout } = useContext(AuthContext);
+  const { userData, login, logout } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  
+  // Edit Profile Modal State
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editMobile, setEditMobile] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  
+  // Payment Methods State
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState([
+    { id: 'cash', name: 'Cash', icon: 'cash-outline', enabled: true, default: true },
+    { id: 'upi', name: 'UPI', icon: 'phone-portrait-outline', enabled: true, default: false },
+    { id: 'card', name: 'Credit/Debit Card', icon: 'card-outline', enabled: false, default: false },
+    { id: 'wallet', name: 'Wallet', icon: 'wallet-outline', enabled: false, default: false },
+  ]);
+  const [defaultPayment, setDefaultPayment] = useState('cash');
+  
+  // Settings State
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [settings, setSettings] = useState({
+    notifications: true,
+    darkMode: true,
+    locationTracking: true,
+    shareData: false,
+    autoBook: false,
+  });
+
+  // Load user profile data
+  useEffect(() => {
+    if (userData) {
+      setUserProfile(userData);
+      setEditName(userData.name || '');
+      setEditEmail(userData.email || '');
+      setEditMobile(userData.mobile || '');
+    }
+    fetchPaymentMethods();
+  }, [userData]);
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await api.get('/user/payment-methods');
+      if (response.data.success) {
+        setPaymentMethods(response.data.methods);
+        setDefaultPayment(response.data.defaultMethod);
+      }
+    } catch (error) {
+      console.log('Payment methods fetch error:', error);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -30,23 +87,117 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleApplyAsCaptain = () => {
-    navigation.navigate('CaptainApplication');
+  // ==================== EDIT PROFILE ====================
+  const openEditProfile = () => {
+    setEditName(userProfile?.name || '');
+    setEditEmail(userProfile?.email || '');
+    setEditMobile(userProfile?.mobile || '');
+    setEditModalVisible(true);
   };
 
-  const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing will be available soon.');
+  const handleSaveProfile = async () => {
+    if (!editName.trim()) {
+      Alert.alert('Error', 'Name is required');
+      return;
+    }
+    
+    setEditLoading(true);
+    try {
+      const response = await api.put('/user/profile', {
+        name: editName.trim(),
+        email: editEmail.trim(),
+        mobile: editMobile.trim(),
+      });
+      
+      if (response.data.success) {
+        const updatedUser = { ...userProfile, name: editName.trim(), email: editEmail.trim(), mobile: editMobile.trim() };
+        await login(userData.token, updatedUser);
+        setUserProfile(updatedUser);
+        setEditModalVisible(false);
+        Alert.alert('Success', 'Profile updated successfully!');
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
-  const handlePaymentMethods = () => {
-    Alert.alert('Payment Methods', 'Payment methods will be available soon.');
+  // ==================== PAYMENT METHODS ====================
+  const openPaymentMethods = () => {
+    setPaymentModalVisible(true);
   };
 
-  const handleSettings = () => {
-    Alert.alert('Settings', 'Settings will be available soon.');
+  const togglePaymentMethod = (id) => {
+    setPaymentMethods(prev => 
+      prev.map(method => 
+        method.id === id ? { ...method, enabled: !method.enabled } : method
+      )
+    );
   };
 
-  if (!userData) {
+  const setDefaultPaymentMethod = (id) => {
+    setDefaultPayment(id);
+    setPaymentMethods(prev => 
+      prev.map(method => ({ ...method, default: method.id === id }))
+    );
+  };
+
+  const savePaymentMethods = async () => {
+    setEditLoading(true);
+    try {
+      const response = await api.post('/user/payment-methods', {
+        methods: paymentMethods,
+        defaultMethod: defaultPayment,
+      });
+      
+      if (response.data.success) {
+        setPaymentModalVisible(false);
+        Alert.alert('Success', 'Payment methods updated successfully!');
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update payment methods');
+      }
+    } catch (error) {
+      console.error('Payment methods save error:', error);
+      Alert.alert('Error', 'Failed to save payment methods');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // ==================== SETTINGS ====================
+  const openSettings = () => {
+    setSettingsModalVisible(true);
+  };
+
+  const toggleSetting = (key) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const saveSettings = async () => {
+    setEditLoading(true);
+    try {
+      const response = await api.post('/user/settings', settings);
+      
+      if (response.data.success) {
+        setSettingsModalVisible(false);
+        Alert.alert('Success', 'Settings updated successfully!');
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update settings');
+      }
+    } catch (error) {
+      console.error('Settings save error:', error);
+      Alert.alert('Error', 'Failed to save settings');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // ==================== RENDER ====================
+  if (!userProfile) {
     return (
       <View style={[GLOBAL_STYLES.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -69,8 +220,11 @@ export default function ProfileScreen() {
         <View style={styles.avatarContainer}>
           <Ionicons name="person" size={40} color={COLORS.primary} />
         </View>
-        <Text style={styles.name}>{userData.name || 'User Name'}</Text>
-        <Text style={styles.email}>{userData.email || 'user@example.com'}</Text>
+        <Text style={styles.name}>{userProfile.name || 'User Name'}</Text>
+        <Text style={styles.email}>{userProfile.email || 'user@example.com'}</Text>
+        {userProfile.mobile && (
+          <Text style={styles.mobile}>{userProfile.mobile}</Text>
+        )}
         <View style={styles.badgeContainer}>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>Customer</Text>
@@ -79,7 +233,8 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem} onPress={handleEditProfile}>
+        {/* Edit Profile */}
+        <TouchableOpacity style={styles.menuItem} onPress={openEditProfile}>
           <View style={styles.menuIconWrapper}>
             <Ionicons name="create-outline" size={20} color={COLORS.primary} />
           </View>
@@ -87,7 +242,8 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem} onPress={handlePaymentMethods}>
+        {/* Payment Methods */}
+        <TouchableOpacity style={styles.menuItem} onPress={openPaymentMethods}>
           <View style={styles.menuIconWrapper}>
             <Ionicons name="card-outline" size={20} color={COLORS.primary} />
           </View>
@@ -95,15 +251,8 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem} onPress={handleApplyAsCaptain}>
-          <View style={styles.menuIconWrapper}>
-            <Ionicons name="car-outline" size={20} color={COLORS.primary} />
-          </View>
-          <Text style={styles.menuText}>Apply as Captain</Text>
-          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={handleSettings}>
+        {/* Settings */}
+        <TouchableOpacity style={styles.menuItem} onPress={openSettings}>
           <View style={styles.menuIconWrapper}>
             <Ionicons name="settings-outline" size={20} color={COLORS.primary} />
           </View>
@@ -113,6 +262,7 @@ export default function ProfileScreen() {
 
         <View style={styles.divider} />
 
+        {/* Logout */}
         <TouchableOpacity
           style={[styles.menuItem, styles.logoutButton]}
           onPress={handleLogout}
@@ -135,6 +285,264 @@ export default function ProfileScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerText}>CabIndia v1.0.0</Text>
       </View>
+
+      {/* ==================== EDIT PROFILE MODAL ==================== */}
+      <Modal
+        visible={editModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={editName}
+                  onChangeText={setEditName}
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Email</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter your email"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={editEmail}
+                  onChangeText={setEditEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Mobile Number</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter your mobile number"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={editMobile}
+                  onChangeText={setEditMobile}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSaveButton]} 
+                onPress={handleSaveProfile}
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <ActivityIndicator color={COLORS.background} size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ==================== PAYMENT METHODS MODAL ==================== */}
+      <Modal
+        visible={paymentModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPaymentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Payment Methods</Text>
+              <TouchableOpacity onPress={() => setPaymentModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              {paymentMethods.map((method) => (
+                <View key={method.id} style={styles.paymentMethodRow}>
+                  <View style={styles.paymentMethodLeft}>
+                    <Ionicons name={method.icon} size={22} color={COLORS.primary} />
+                    <Text style={styles.paymentMethodName}>{method.name}</Text>
+                  </View>
+                  <View style={styles.paymentMethodRight}>
+                    <TouchableOpacity
+                      onPress={() => setDefaultPaymentMethod(method.id)}
+                      style={[
+                        styles.defaultButton,
+                        method.default && styles.defaultButtonActive,
+                      ]}
+                    >
+                      <Text style={[
+                        styles.defaultButtonText,
+                        method.default && styles.defaultButtonTextActive,
+                      ]}>
+                        {method.default ? 'Default' : 'Set Default'}
+                      </Text>
+                    </TouchableOpacity>
+                    <Switch
+                      value={method.enabled}
+                      onValueChange={() => togglePaymentMethod(method.id)}
+                      trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                      thumbColor={method.enabled ? '#000' : '#fff'}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setPaymentModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSaveButton]} 
+                onPress={savePaymentMethods}
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <ActivityIndicator color={COLORS.background} size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== SETTINGS MODAL ==================== */}
+      <Modal
+        visible={settingsModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSettingsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Settings</Text>
+              <TouchableOpacity onPress={() => setSettingsModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Push Notifications</Text>
+                  <Text style={styles.settingDesc}>Receive ride alerts and updates</Text>
+                </View>
+                <Switch
+                  value={settings.notifications}
+                  onValueChange={() => toggleSetting('notifications')}
+                  trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                  thumbColor={settings.notifications ? '#000' : '#fff'}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Dark Mode</Text>
+                  <Text style={styles.settingDesc}>Dark theme preference</Text>
+                </View>
+                <Switch
+                  value={settings.darkMode}
+                  onValueChange={() => toggleSetting('darkMode')}
+                  trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                  thumbColor={settings.darkMode ? '#000' : '#fff'}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Location Tracking</Text>
+                  <Text style={styles.settingDesc}>Allow app to track your location</Text>
+                </View>
+                <Switch
+                  value={settings.locationTracking}
+                  onValueChange={() => toggleSetting('locationTracking')}
+                  trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                  thumbColor={settings.locationTracking ? '#000' : '#fff'}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Share Data</Text>
+                  <Text style={styles.settingDesc}>Share anonymized data for improvements</Text>
+                </View>
+                <Switch
+                  value={settings.shareData}
+                  onValueChange={() => toggleSetting('shareData')}
+                  trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                  thumbColor={settings.shareData ? '#000' : '#fff'}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Auto-Book</Text>
+                  <Text style={styles.settingDesc}>Automatically book preferred ride</Text>
+                </View>
+                <Switch
+                  value={settings.autoBook}
+                  onValueChange={() => toggleSetting('autoBook')}
+                  trackColor={{ false: COLORS.borderColor, true: COLORS.primary }}
+                  thumbColor={settings.autoBook ? '#000' : '#fff'}
+                />
+              </View>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setSettingsModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSaveButton]} 
+                onPress={saveSettings}
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <ActivityIndicator color={COLORS.background} size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -196,6 +604,11 @@ const styles = StyleSheet.create({
   email: {
     fontSize: SIZES.medium,
     color: COLORS.textMuted,
+  },
+  mobile: {
+    fontSize: SIZES.small,
+    color: COLORS.textMuted,
+    marginTop: 2,
   },
   badgeContainer: {
     flexDirection: 'row',
@@ -269,5 +682,152 @@ const styles = StyleSheet.create({
   footerText: {
     color: COLORS.textMuted,
     fontSize: SIZES.small,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.cardBackground,
+    borderTopLeftRadius: SIZES.radius * 2,
+    borderTopRightRadius: SIZES.radius * 2,
+    padding: SIZES.padding * 1.5,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: SIZES.padding,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderColor,
+  },
+  modalTitle: {
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+  },
+  modalBody: {
+    paddingVertical: SIZES.padding,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SIZES.margin,
+    paddingTop: SIZES.padding,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderColor,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: SIZES.padding * 0.8,
+    borderRadius: SIZES.radius,
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: COLORS.inputBackground,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  modalCancelText: {
+    color: COLORS.text,
+    fontFamily: FONTS.semibold,
+    fontSize: SIZES.medium,
+  },
+  modalSaveButton: {
+    backgroundColor: COLORS.primary,
+  },
+  modalSaveText: {
+    color: COLORS.background,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
+  },
+
+  // Edit Profile Inputs
+  inputGroup: {
+    marginBottom: SIZES.margin * 1.5,
+  },
+  inputLabel: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.semibold,
+    marginBottom: 4,
+  },
+  modalInput: {
+    backgroundColor: COLORS.inputBackground,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+    paddingHorizontal: SIZES.padding,
+    paddingVertical: SIZES.padding * 0.8,
+    color: COLORS.text,
+    fontSize: SIZES.body,
+  },
+
+  // Payment Methods
+  paymentMethodRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SIZES.padding,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderColor,
+  },
+  paymentMethodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.margin,
+  },
+  paymentMethodName: {
+    color: COLORS.text,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.semibold,
+  },
+  paymentMethodRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.margin,
+  },
+  defaultButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  defaultButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  defaultButtonText: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontFamily: FONTS.semibold,
+  },
+  defaultButtonTextActive: {
+    color: COLORS.background,
+  },
+
+  // Settings
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SIZES.padding,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderColor,
+  },
+  settingLabel: {
+    color: COLORS.text,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.semibold,
+  },
+  settingDesc: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    marginTop: 2,
   },
 });

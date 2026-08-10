@@ -3,8 +3,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// Get API URL from environment - using Constants exclusively
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
+// Get API URL from environment
+import { API_URL } from '../config';
 
 console.log('API_URL:', API_URL);
 

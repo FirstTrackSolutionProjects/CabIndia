@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import api from '../utils/api';
 
 const RideItem = ({ ride }) => {
@@ -50,7 +50,8 @@ export default function RideHistoryScreen() {
   const fetchRides = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/drivers/rides');
+      // FIX: Add /api/ prefix
+      const response = await api.get('/api/drivers/rides');
       console.log('Driver rides response:', response.data);
       if (response.data.success) {
         setRides(response.data.rides || []);

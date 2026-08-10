@@ -6,9 +6,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, LogBox, View, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { COLORS, SIZES } from './src/styles/theme';
+import { FONTS } from './src/styles/theme';
+
+// Import Ionicons from react-native-vector-icons directly
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Ignore warnings
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
@@ -33,9 +37,6 @@ import MoreScreen from './src/screens/MoreScreen';
 import PolicyScreen from './src/screens/PolicyScreen';
 import SafetyScreen from './src/screens/SafetyScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
-
-import { COLORS, SIZES } from './src/styles/theme';
-import { FONTS } from './src/styles/theme';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -197,7 +198,7 @@ const RootNavigator = ({ appIsReady }) => {
       </NavigationContainer>
     </GestureHandlerRootView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   splashContainer: {

@@ -8,13 +8,13 @@ import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-m
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 
 const { height } = Dimensions.get('window');
 
-const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
+import { SOCKET_URL } from '../config';
 const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey || 
                            Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
                            'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
@@ -26,7 +26,7 @@ let socket = null;
 
 const getSocket = () => {
   if (!socket) {
-    socket = io(BACKEND_URL, {
+    socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
@@ -66,7 +66,8 @@ export default function MapScreen() {
   const fetchRideDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/rides/${rideId}`);
+      // FIX: Add /api/ prefix
+      const response = await api.get(`/api/rides/${rideId}`);
       if (response.data.success) {
         const ride = response.data.ride;
         setRideDetails(ride);
@@ -209,7 +210,8 @@ export default function MapScreen() {
 
   const startRide = async () => {
     try {
-      const response = await api.post(`/rides/${rideId}/start`);
+      // FIX: Add /api/ prefix
+      const response = await api.post(`/api/rides/${rideId}/start`);
       if (response.data.success) {
         setRideStatus('started');
         Alert.alert('✅ Ride Started!', 'Navigate to the dropoff location.');
@@ -227,7 +229,8 @@ export default function MapScreen() {
       const distanceKm = 5.0;
       const finalPrice = rideDetails?.estimated_price || '100';
       
-      const response = await api.post(`/rides/${rideId}/complete`, {
+      // FIX: Add /api/ prefix
+      const response = await api.post(`/api/rides/${rideId}/complete`, {
         finalPrice: finalPrice.toString().split('-')[0].trim(),
         distanceKm: distanceKm,
       });
@@ -260,7 +263,8 @@ export default function MapScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.post(`/rides/${rideId}/cancel`, {
+              // FIX: Add /api/ prefix
+              await api.post(`/api/rides/${rideId}/cancel`, {
                 cancellationReason: 'Cancelled by captain',
               });
               if (locationInterval.current) {

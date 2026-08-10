@@ -6,11 +6,16 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar, View, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-SplashScreen.preventAutoHideAsync();
+// Import Ionicons from react-native-vector-icons directly
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+// Keep splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(err => {
+  console.error('SplashScreen preventAutoHideAsync error:', err);
+});
 
 // Auth Context
 export const AuthContext = React.createContext();
@@ -21,17 +26,39 @@ const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
 
   const login = async (token, user) => {
-    setUserToken(token);
-    setUserData(user);
-    await AsyncStorage.setItem('userToken', token);
-    await AsyncStorage.setItem('userData', JSON.stringify(user));
+    try {
+      console.log('Logging in user:', user);
+      setUserToken(token);
+      setUserData(user);
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      console.log('Login successful, token saved');
+    } catch (error) {
+      console.error('Login storage error:', error);
+    }
   };
 
   const logout = async () => {
-    setUserToken(null);
-    setUserData(null);
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('userData');
+    try {
+      setUserToken(null);
+      setUserData(null);
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
+      console.log('Logout successful');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  // Add updateUser function for profile updates
+  const updateUser = async (user) => {
+    try {
+      setUserData(user);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
+      console.log('User data updated');
+    } catch (error) {
+      console.error('Update user error:', error);
+    }
   };
 
   useEffect(() => {
@@ -42,6 +69,7 @@ const AuthProvider = ({ children }) => {
         if (token && data) {
           setUserToken(token);
           setUserData(JSON.parse(data));
+          console.log('User already logged in');
         }
       } catch (e) {
         console.log('checkLoginStatus error:', e);
@@ -53,7 +81,14 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ login, logout, isLoading, userToken, userData }}>
+    <AuthContext.Provider value={{ 
+      login, 
+      logout, 
+      updateUser, 
+      isLoading, 
+      userToken, 
+      userData 
+    }}>
       {children}
     </AuthContext.Provider>
   );
@@ -72,13 +107,20 @@ import MapScreen from './src/screens/MapScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// Authentication Stack
 const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      cardStyle: { backgroundColor: '#0a0a0a' }
+    }}
+  >
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>
 );
 
+// Main Tabs
 const MainTabs = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
@@ -99,6 +141,8 @@ const MainTabs = () => (
       },
       tabBarIcon: ({ focused, color, size }) => {
         let iconName;
+        const iconSize = size || 24;
+        
         if (route.name === 'Dashboard') {
           iconName = focused ? 'home' : 'home-outline';
         } else if (route.name === 'Requests') {
@@ -110,7 +154,7 @@ const MainTabs = () => (
         } else if (route.name === 'Profile') {
           iconName = focused ? 'person' : 'person-outline';
         }
-        return <Ionicons name={iconName} size={size || 24} color={color} />;
+        return <Ionicons name={iconName} size={iconSize} color={color} />;
       },
     })}
   >
@@ -122,12 +166,33 @@ const MainTabs = () => (
   </Tab.Navigator>
 );
 
+// Main Stack with Map
 const MainStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator 
+    screenOptions={{ 
+      headerShown: false,
+      cardStyle: { backgroundColor: '#0a0a0a' }
+    }}
+  >
     <Stack.Screen name="MainTabs" component={MainTabs} />
     <Stack.Screen name="Map" component={MapScreen} />
   </Stack.Navigator>
 );
+
+// Root Navigator
+const RootNavigator = () => {
+  const { userToken, isLoading } = useContext(AuthContext);
+
+  if (isLoading) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image source={require('./assets/splash.png')} style={styles.splashImage} />
+      </View>
+    );
+  }
+
+  return userToken ? <MainStack /> : <AuthStack />;
+};
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
@@ -135,12 +200,15 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
+        // Simulate loading resources
         await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (e) {
-        console.error(e);
+        console.error('App preparation error:', e);
       } finally {
         setAppIsReady(true);
-        await SplashScreen.hideAsync();
+        await SplashScreen.hideAsync().catch(err => {
+          console.error('Hide splash error:', err);
+        });
       }
     }
     prepare();
@@ -166,21 +234,13 @@ export default function App() {
   );
 }
 
-const RootNavigator = () => {
-  const { userToken, isLoading } = useContext(AuthContext);
-
-  if (isLoading) {
-    return (
-      <View style={styles.splashContainer}>
-        <Image source={require('./assets/splash.png')} style={styles.splashImage} />
-      </View>
-    );
-  }
-
-  return userToken ? <MainStack /> : <AuthStack />;
-};
-
 const styles = StyleSheet.create({
-  splashContainer: { flex: 1, backgroundColor: '#0a0a0a' },
-  splashImage: { width: '100%', height: '100%' },
+  splashContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  splashImage: {
+    width: '100%',
+    height: '100%',
+  },
 });

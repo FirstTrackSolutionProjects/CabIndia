@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import api from '../utils/api';
 
 export default function EarningsScreen() {
@@ -18,7 +18,8 @@ export default function EarningsScreen() {
   const fetchEarnings = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/drivers/stats');
+      // FIX: Add /api/ prefix
+      const response = await api.get('/api/drivers/stats');
       console.log('Earnings stats response:', response.data);
       if (response.data.success) {
         setStats(response.data.data);

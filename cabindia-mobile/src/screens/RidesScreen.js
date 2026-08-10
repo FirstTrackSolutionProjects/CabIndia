@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshCont
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const RideItem = ({ ride }) => {
   const getStatusColor = (status) => {
@@ -33,7 +33,7 @@ const RideItem = ({ ride }) => {
     <View style={styles.rideCard}>
       <View style={styles.rideInfo}>
         <View style={styles.rideHeader}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + '20' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(ride.status) + '20' }]}>
             <Ionicons name={getStatusIcon(ride.status)} size={12} color={getStatusColor(ride.status)} />
             <Text style={[styles.rideStatus, { color: getStatusColor(ride.status) }]}>
               {ride.status.toUpperCase()}
@@ -79,7 +79,6 @@ export default function RidesScreen() {
       }
     } catch (error) {
       console.error('Error fetching rides:', error);
-      // Check if it's an authentication issue
       if (error.response?.status === 401) {
         Alert.alert('Session Expired', 'Please login again.');
       } else {
@@ -119,8 +118,13 @@ export default function RidesScreen() {
         keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
         renderItem={({ item }) => <RideItem ride={item} />}
         contentContainerStyle={styles.listContainer}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor={COLORS.primary}
+          />
+        }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <Ionicons name="car-outline" size={48} color={COLORS.textMuted} />

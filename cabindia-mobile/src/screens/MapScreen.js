@@ -17,7 +17,7 @@ import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-m
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import Feather from 'react-native-vector-icons/Feather';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 
@@ -26,28 +26,17 @@ const { height, width } = Dimensions.get('window');
 // ============================================
 // BACKEND URL - Using Constants exclusively
 // ============================================
-const BACKEND_URL = Constants.expoConfig?.extra?.socketUrl || 
-                    Constants.expoConfig?.extra?.apiUrl ||
-                    'https://cabindia-mobile.onrender.com';
+import { SOCKET_URL, GOOGLE_MAPS_API_KEY } from '../config';
 
-// Google Maps API Keys from environment - Using Constants exclusively
-const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey ||
-                            '';
-
-// Google OAuth Config - Using Constants exclusively
-const GOOGLE_CLIENT_ID = Constants.expoConfig?.extra?.googleClientId || 
-                         '';
-
-console.log('🔌 Socket connecting to:', BACKEND_URL);
+console.log('🔌 Socket connecting to:', SOCKET_URL);
 console.log('🗺️ Google Maps API Key configured:', !!GOOGLE_MAPS_API_KEY);
-console.log('🔑 Google Client ID configured:', !!GOOGLE_CLIENT_ID);
 
 // Create socket connection
 let socket = null;
 
 const getSocket = () => {
   if (!socket) {
-    socket = io(BACKEND_URL, {
+    socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
@@ -149,7 +138,6 @@ const MapScreen = () => {
         
         setCurrentLocation(userLocation);
 
-        // Animate map to user location
         if (mapRef.current) {
           mapRef.current.animateToRegion({
             latitude: userLocation.latitude,
@@ -160,7 +148,6 @@ const MapScreen = () => {
         }
       } catch (error) {
         console.error('❌ Location error:', error);
-        // Fallback to default location
         setCurrentLocation(defaultRegion);
       }
     })();
@@ -188,14 +175,12 @@ const MapScreen = () => {
       setIsSearching(false);
       setIsDriverAssigned(true);
       
-      // Update driver location
       const newLocation = {
         latitude: data.latitude,
         longitude: data.longitude,
       };
       setDriverLocation(newLocation);
 
-      // Animate marker
       if (driverAnimatedRegion) {
         driverAnimatedRegion.timing({
           latitude: data.latitude,
@@ -205,7 +190,6 @@ const MapScreen = () => {
         }).start();
       }
 
-      // Update driver info
       if (data.driverName) {
         setDriverInfo({
           name: data.driverName,
@@ -215,12 +199,10 @@ const MapScreen = () => {
         });
       }
 
-      // Update ride status
       if (data.status) {
         setRideStatus(data.status);
       }
 
-      // Fit map to show both locations
       if (mapRef.current && pickupLat && pickupLon) {
         const coordinates = [
           { latitude: pickupLat, longitude: pickupLon },
@@ -309,12 +291,10 @@ const MapScreen = () => {
     return () => {
       console.log('🧹 Cleaning up MapScreen socket listeners');
       
-      // Clear timer
       if (timerInterval.current) {
         clearInterval(timerInterval.current);
       }
 
-      // Remove all listeners
       if (socketInstance.current) {
         socketInstance.current.off(`location_${rideId}`, locationHandler);
         socketInstance.current.off('ride_status_update', statusHandler);
@@ -401,7 +381,6 @@ const MapScreen = () => {
             style={[
               styles.dot,
               { 
-                animationDelay: `${i * 0.3}s`,
                 opacity: timer % 3 === i ? 1 : 0.3,
               }
             ]} 
@@ -512,7 +491,9 @@ const MapScreen = () => {
         loadingEnabled
         loadingIndicatorColor={COLORS.primary}
         loadingBackgroundColor={COLORS.background}
+        // IMPORTANT: Add googleMapsApiKey prop
         googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+        onMapReady={() => console.log('🗺️ MapScreen map is ready!')}
       >
         {/* User Location Marker */}
         {currentLocation && (

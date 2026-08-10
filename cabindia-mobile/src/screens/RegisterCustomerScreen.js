@@ -4,11 +4,22 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
   Alert, ActivityIndicator, ScrollView 
 } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import Feather from 'react-native-vector-icons/Feather';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
+
+// Check if running in Expo Go
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// Only import GoogleSignin if NOT in Expo Go
+let GoogleSignin, statusCodes;
+if (!isExpoGo) {
+  const GoogleSigninModule = require('@react-native-google-signin/google-signin');
+  GoogleSignin = GoogleSigninModule.GoogleSignin;
+  statusCodes = GoogleSigninModule.statusCodes;
+}
 
 const RegisterCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -22,14 +33,16 @@ const RegisterCustomerScreen = ({ navigation }) => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Configure Google Sign-In
+  // Configure Google Sign-In (only if not in Expo Go)
   useEffect(() => {
-    GoogleSignin.configure({
-      webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
-      offlineAccess: true,
-      hostedDomain: '',
-      forceCodeForRefreshToken: true,
-    });
+    if (!isExpoGo && GoogleSignin) {
+      GoogleSignin.configure({
+        webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
+        offlineAccess: true,
+        hostedDomain: '',
+        forceCodeForRefreshToken: true,
+      });
+    }
   }, []);
 
   const handleRegister = async () => {
@@ -82,13 +95,25 @@ const RegisterCustomerScreen = ({ navigation }) => {
   };
 
   const handleGoogleRegister = async () => {
+    if (isExpoGo) {
+      Alert.alert(
+        'Info',
+        'Google Sign-In is not available in Expo Go.\nPlease use email/password registration or create a development build.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (!GoogleSignin) {
+      Alert.alert('Error', 'Google Sign-In is not available.');
+      return;
+    }
+
     try {
       setGoogleLoading(true);
       
-      // Check if Google Play Services are available
       await GoogleSignin.hasPlayServices();
       
-      // Get user info
       const userInfo = await GoogleSignin.signIn();
       console.log('Google user info:', userInfo);
       
@@ -98,7 +123,6 @@ const RegisterCustomerScreen = ({ navigation }) => {
         throw new Error('No ID token received from Google');
       }
 
-      // Send to backend for registration/login
       const response = await api.post('/api/auth/google', {
         idToken: idToken,
         email: user.email,
@@ -116,7 +140,6 @@ const RegisterCustomerScreen = ({ navigation }) => {
             { 
               text: 'OK', 
               onPress: () => {
-                // Navigate to Home screen
                 navigation.navigate('HomeTab');
               } 
             }
@@ -128,12 +151,11 @@ const RegisterCustomerScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Google registration error:', error);
       
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // User cancelled the login flow
+      if (error.code === statusCodes?.SIGN_IN_CANCELLED) {
         console.log('User cancelled Google sign-in');
-      } else if (error.code === statusCodes.IN_PROGRESS) {
+      } else if (error.code === statusCodes?.IN_PROGRESS) {
         Alert.alert('Error', 'Google sign-in is already in progress.');
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      } else if (error.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('Error', 'Google Play Services not available. Please update.');
       } else {
         Alert.alert('Error', error.message || 'Failed to register with Google. Please try again.');
@@ -261,7 +283,9 @@ const RegisterCustomerScreen = ({ navigation }) => {
               ) : (
                 <>
                   <FontAwesome5 name="google" size={20} color={COLORS.text} />
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  <Text style={styles.googleButtonText}>
+                    {isExpoGo ? 'Google (Dev Only)' : 'Continue with Google'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

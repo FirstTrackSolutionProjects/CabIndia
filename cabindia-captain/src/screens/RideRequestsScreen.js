@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 import api from '../utils/api';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
+import { SOCKET_URL } from '../config';
 
 export default function RideRequestsScreen({ navigation }) {
   const [requests, setRequests] = useState([]);
@@ -17,7 +17,7 @@ export default function RideRequestsScreen({ navigation }) {
 
   useEffect(() => {
     // Connect to socket
-    const socket = io(BACKEND_URL, {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -71,7 +71,8 @@ export default function RideRequestsScreen({ navigation }) {
 
   const acceptRide = async (rideId) => {
     try {
-      const response = await api.post(`/rides/${rideId}/accept`);
+      // FIX: Add /api/ prefix
+      const response = await api.post(`/api/rides/${rideId}/accept`);
       if (response.data.success) {
         Alert.alert('✅ Ride Accepted!', 'Navigate to the pickup location.');
         setRequests(prev => prev.filter(r => r.rideId !== rideId));

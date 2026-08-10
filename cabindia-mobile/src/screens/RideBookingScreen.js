@@ -3,13 +3,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Alert, KeyboardAvoidingView, Platform, Dimensions,
-  ScrollView, ActivityIndicator, Image, FlatList
+  ActivityIndicator, Image, FlatList
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -22,10 +22,12 @@ import Constants from 'expo-constants';
 
 const { height: screenHeight } = Dimensions.get('window');
 
-// Google Maps API Key
+// Google Maps API Key - IMPORTANT: This must match your app.json
 const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
   Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
   'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
+
+console.log('🗺️ Google Maps API Key:', GOOGLE_MAPS_API_KEY ? 'Configured ✅' : 'Missing ❌');
 
 const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.28;
 const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.65;
@@ -81,13 +83,12 @@ export default function RideBookingScreen() {
   const [sourceCoords, setSourceCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [loadingGeocode, setLoadingGeocode] = useState(false);
+  const [loadingFindRide, setLoadingFindRide] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [sourceSuggestions, setSourceSuggestions] = useState([]);
   const [destSuggestions, setDestSuggestions] = useState([]);
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
-  const [isSourceFocused, setIsSourceFocused] = useState(false);
-  const [isDestFocused, setIsDestFocused] = useState(false);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const mapRef = useRef(null);
 
@@ -176,7 +177,6 @@ export default function RideBookingScreen() {
         latitude: details.latitude,
         longitude: details.longitude,
       });
-      // Fit map to show location
       if (mapRef.current) {
         mapRef.current.animateToRegion({
           latitude: details.latitude,
@@ -214,7 +214,6 @@ export default function RideBookingScreen() {
         const decoded = decodePolyline(points);
         setRouteCoordinates(decoded);
 
-        // Fit map to show entire route
         if (mapRef.current && decoded.length > 0) {
           const first = decoded[0];
           const last = decoded[decoded.length - 1];
@@ -272,54 +271,60 @@ export default function RideBookingScreen() {
       return;
     }
 
-    // If we don't have coordinates, geocode
-    if (!sourceCoords || !destinationCoords) {
-      setLoadingGeocode(true);
-      // Try to geocode using Google Maps Geocoding API
-      try {
-        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(source)}&key=${GOOGLE_MAPS_API_KEY}`;
-        const geoResponse = await fetch(geoUrl);
-        const geoData = await geoResponse.json();
-        if (geoData.results && geoData.results.length > 0) {
-          const { lat, lng } = geoData.results[0].geometry.location;
-          setSourceCoords({ latitude: lat, longitude: lng });
-        }
+    setLoadingFindRide(true);
 
-        const geoUrl2 = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`;
-        const geoResponse2 = await fetch(geoUrl2);
-        const geoData2 = await geoResponse2.json();
-        if (geoData2.results && geoData2.results.length > 0) {
-          const { lat, lng } = geoData2.results[0].geometry.location;
-          setDestinationCoords({ latitude: lat, longitude: lng });
+    try {
+      if (!sourceCoords || !destinationCoords) {
+        setLoadingGeocode(true);
+        try {
+          const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(source)}&key=${GOOGLE_MAPS_API_KEY}`;
+          const geoResponse = await fetch(geoUrl);
+          const geoData = await geoResponse.json();
+          if (geoData.results && geoData.results.length > 0) {
+            const { lat, lng } = geoData.results[0].geometry.location;
+            setSourceCoords({ latitude: lat, longitude: lng });
+          }
+
+          const geoUrl2 = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(destination)}&key=${GOOGLE_MAPS_API_KEY}`;
+          const geoResponse2 = await fetch(geoUrl2);
+          const geoData2 = await geoResponse2.json();
+          if (geoData2.results && geoData2.results.length > 0) {
+            const { lat, lng } = geoData2.results[0].geometry.location;
+            setDestinationCoords({ latitude: lat, longitude: lng });
+          }
+        } catch (error) {
+          console.error('Geocoding error:', error);
         }
-      } catch (error) {
-        console.error('Geocoding error:', error);
+        setLoadingGeocode(false);
       }
-      setLoadingGeocode(false);
+
+      if (!sourceCoords || !destinationCoords) {
+        Alert.alert('Location Error', 'Could not find coordinates. Please try again.');
+        setLoadingFindRide(false);
+        return;
+      }
+
+      await getRoute(
+        sourceCoords.latitude,
+        sourceCoords.longitude,
+        destinationCoords.latitude,
+        destinationCoords.longitude
+      );
+
+      navigation.navigate('FareDetails', {
+        sourceAddress: source,
+        destinationAddress: destination,
+        sourceLat: sourceCoords.latitude,
+        sourceLon: sourceCoords.longitude,
+        destinationLat: destinationCoords.latitude,
+        destinationLon: destinationCoords.longitude,
+      });
+    } catch (error) {
+      console.error('Error in handleGetFare:', error);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoadingFindRide(false);
     }
-
-    if (!sourceCoords || !destinationCoords) {
-      Alert.alert('Location Error', 'Could not find coordinates. Please try again.');
-      return;
-    }
-
-    // Get route
-    await getRoute(
-      sourceCoords.latitude,
-      sourceCoords.longitude,
-      destinationCoords.latitude,
-      destinationCoords.longitude
-    );
-
-    // Navigate to FareDetails
-    navigation.navigate('FareDetails', {
-      sourceAddress: source,
-      destinationAddress: destination,
-      sourceLat: sourceCoords.latitude,
-      sourceLon: sourceCoords.longitude,
-      destinationLat: destinationCoords.latitude,
-      destinationLon: destinationCoords.longitude,
-    });
   };
 
   const panGesture = Gesture.Pan()
@@ -418,8 +423,12 @@ export default function RideBookingScreen() {
           loadingEnabled
           loadingIndicatorColor={COLORS.primary}
           loadingBackgroundColor={COLORS.background}
-          onMapReady={() => setMapReady(true)}
-          apiKey={GOOGLE_MAPS_API_KEY}
+          onMapReady={() => {
+            console.log('🗺️ Map is ready!');
+            setMapReady(true);
+          }}
+          // IMPORTANT: Add googleMapsApiKey prop
+          googleMapsApiKey={GOOGLE_MAPS_API_KEY}
         >
           {currentLocation && (
             <Marker
@@ -466,11 +475,7 @@ export default function RideBookingScreen() {
           </View>
         </GestureDetector>
 
-        <ScrollView
-          contentContainerStyle={styles.bottomSheetContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
+        <View style={styles.bottomSheetContent}>
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
               <Image
@@ -495,11 +500,9 @@ export default function RideBookingScreen() {
                 value={source}
                 onChangeText={handleSourceChange}
                 onFocus={() => {
-                  setIsSourceFocused(true);
                   setShowSourceSuggestions(true);
                 }}
                 onBlur={() => {
-                  // Delay hiding suggestions to allow selection
                   setTimeout(() => {
                     setShowSourceSuggestions(false);
                   }, 200);
@@ -525,7 +528,6 @@ export default function RideBookingScreen() {
                 value={destination}
                 onChangeText={handleDestChange}
                 onFocus={() => {
-                  setIsDestFocused(true);
                   setShowDestSuggestions(true);
                 }}
                 onBlur={() => {
@@ -539,12 +541,12 @@ export default function RideBookingScreen() {
           </View>
 
           <TouchableOpacity
-            style={styles.findRideButton}
+            style={[styles.findRideButton, (loadingFindRide || loadingGeocode) && { opacity: 0.7 }]}
             onPress={handleGetFare}
-            disabled={loadingGeocode}
+            disabled={loadingFindRide || loadingGeocode}
             activeOpacity={0.8}
           >
-            {loadingGeocode ? (
+            {(loadingFindRide || loadingGeocode) ? (
               <ActivityIndicator color={COLORS.background} size="small" />
             ) : (
               <>
@@ -568,7 +570,7 @@ export default function RideBookingScreen() {
               <Text style={styles.quickActionText}>Corporate</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       </Animated.View>
     </KeyboardAvoidingView>
   );
@@ -602,6 +604,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 30,
+    flex: 1,
   },
   dragHandleContainer: {
     alignSelf: 'center',

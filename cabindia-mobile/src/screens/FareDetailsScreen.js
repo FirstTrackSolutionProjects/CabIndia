@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import Feather from 'react-native-vector-icons/Feather';
 import { calculateDistance } from '../utils/locationUtils';
 import api from '../utils/api';
 import Constants from 'expo-constants';
@@ -62,22 +62,19 @@ export default function FareDetailsScreen() {
         if (data.rows && data.rows.length > 0 && data.rows[0].elements && data.rows[0].elements.length > 0) {
           const element = data.rows[0].elements[0];
           if (element.status === 'OK') {
-            const distanceInKm = element.distance.value / 1000; // Convert meters to km
+            const distanceInKm = element.distance.value / 1000;
             setRealDistance(distanceInKm);
             setDistance(distanceInKm);
           } else {
-            // Fallback to calculated distance
             const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
             setDistance(calcDist);
           }
         } else {
-          // Fallback to calculated distance
           const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
           setDistance(calcDist);
         }
       } catch (error) {
         console.error('Distance API error:', error);
-        // Fallback to calculated distance
         const calcDist = calculateDistance(sourceLat, sourceLon, destinationLat, destinationLon);
         setDistance(calcDist);
       } finally {

@@ -6,13 +6,13 @@ import {
 } from 'react-native';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, FONTS } from '../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Location from 'expo-location';
 import api from '../utils/api';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 
-const BACKEND_URL = Constants.expoConfig?.extra?.apiUrl || 'https://cabindia-mobile.onrender.com';
+import { SOCKET_URL } from '../config';
 
 export default function DashboardScreen({ navigation }) {
   const { userData } = useContext(AuthContext);
@@ -107,7 +107,7 @@ export default function DashboardScreen({ navigation }) {
 
   // Initialize socket connection
   useEffect(() => {
-    const socket = io(BACKEND_URL, {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
@@ -183,7 +183,8 @@ export default function DashboardScreen({ navigation }) {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/drivers/stats');
+      // FIX: Add /api/ prefix
+      const response = await api.get('/api/drivers/stats');
       console.log('Dashboard stats response:', response.data);
       if (response.data.success) {
         setStats(response.data.data);
@@ -229,7 +230,8 @@ export default function DashboardScreen({ navigation }) {
         setLocation(currentLocation);
       }
 
-      const response = await api.post('/drivers/status', {
+      // FIX: Add /api/ prefix
+      const response = await api.post('/api/drivers/status', {
         online: newStatus,
         lat: currentLocation?.latitude || null,
         lng: currentLocation?.longitude || null,
@@ -279,7 +281,8 @@ export default function DashboardScreen({ navigation }) {
 
   const acceptRide = async (rideId) => {
     try {
-      const response = await api.post(`/rides/${rideId}/accept`);
+      // FIX: Add /api/ prefix
+      const response = await api.post(`/api/rides/${rideId}/accept`);
       if (response.data.success) {
         setCurrentRide({ rideId, status: 'accepted' });
         setRideRequests(prev => prev.filter(r => r.rideId !== rideId));

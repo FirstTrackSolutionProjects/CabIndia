@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native'; // NEW
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import Feather from 'react-native-vector-icons/Feather';
 import { PanGestureHandler, GestureHandlerRootView, GestureDetector, Gesture } from 'react-native-gesture-handler'; // NEW: Gesture imports
 import Animated, {
   useSharedValue,
