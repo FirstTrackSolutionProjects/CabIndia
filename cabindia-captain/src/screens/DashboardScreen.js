@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, FONTS } from '../styles/theme';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import api from '../utils/api';
 import { io } from 'socket.io-client';

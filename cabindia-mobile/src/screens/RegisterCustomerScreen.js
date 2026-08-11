@@ -21,6 +21,46 @@ if (!isExpoGo) {
   statusCodes = GoogleSigninModule.statusCodes;
 }
 
+// ============================================
+// USER-FRIENDLY ERROR MESSAGES
+// ============================================
+const USER_FRIENDLY_ERRORS = {
+  'User Already Exists with this email': '📧 This email is already registered. Try logging in instead, or use a different email.',
+  'Mobile number already registered': '📱 This phone number is already in use. If this is your number, please login. If not, use a different number.',
+  'Password must be same in both fields': '🔑 The passwords you entered don\'t match. Please make sure both password fields are the same.',
+  'Email and Password are required': '📝 Please fill in all fields to create your account.',
+  'Network error': '🌐 Having trouble connecting. Please check your internet connection and try again.',
+  'Server error': '⚠️ Something went wrong on our end. Our team is working on it. Please try again later.',
+  'default': 'Hmm, something went wrong. Please check your information and try again.'
+};
+
+const getFriendlyErrorMessage = (serverMessage) => {
+  if (!serverMessage) return USER_FRIENDLY_ERRORS.default;
+  
+  if (USER_FRIENDLY_ERRORS[serverMessage]) {
+    return USER_FRIENDLY_ERRORS[serverMessage];
+  }
+  
+  const lowerMsg = serverMessage.toLowerCase();
+  if (lowerMsg.includes('email') && (lowerMsg.includes('exist') || lowerMsg.includes('already'))) {
+    return USER_FRIENDLY_ERRORS['User Already Exists with this email'];
+  }
+  if (lowerMsg.includes('mobile') && (lowerMsg.includes('exist') || lowerMsg.includes('already'))) {
+    return USER_FRIENDLY_ERRORS['Mobile number already registered'];
+  }
+  if (lowerMsg.includes('password') && lowerMsg.includes('match')) {
+    return USER_FRIENDLY_ERRORS['Password must be same in both fields'];
+  }
+  if (lowerMsg.includes('network') || lowerMsg.includes('connection')) {
+    return USER_FRIENDLY_ERRORS['Network error'];
+  }
+  if (lowerMsg.includes('server') || lowerMsg.includes('internal')) {
+    return USER_FRIENDLY_ERRORS['Server error'];
+  }
+  
+  return serverMessage;
+};
+
 const RegisterCustomerScreen = ({ navigation }) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,19 +87,31 @@ const RegisterCustomerScreen = ({ navigation }) => {
 
   const handleRegister = async () => {
     if (!name || !email || !mobile || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields.");
+      Alert.alert(
+        '📝 Missing Information',
+        'Please fill in all fields to create your account. We need your name, email, phone number, and password.'
+      );
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
+      Alert.alert(
+        '🔑 Password Mismatch',
+        'The passwords you entered don\'t match. Please make sure both password fields are the same.'
+      );
       return;
     }
     if (password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters.");
+      Alert.alert(
+        '🔒 Password Too Short',
+        'For your security, your password needs to be at least 8 characters long. Add more characters and try again.'
+      );
       return;
     }
     if (mobile.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit mobile number.");
+      Alert.alert(
+        '📱 Invalid Phone Number',
+        'Please enter a valid 10-digit Indian phone number. For example: 98765 43210'
+      );
       return;
     }
 
@@ -78,17 +130,22 @@ const RegisterCustomerScreen = ({ navigation }) => {
       console.log('Registration response:', response.data);
 
       if (response.data.success) {
-        Alert.alert('Success', response.data.message);
+        Alert.alert(
+          '🎉 Welcome to CabIndia!',
+          `Great to have you onboard, ${name}! 🚗\n\nYour account has been created. Please login to start booking rides.`
+        );
         navigation.navigate('Login');
       } else {
-        setError(response.data.message || 'Registration failed');
-        Alert.alert('Registration Failed', response.data.message || 'Please try again.');
+        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
+        setError(friendlyMsg);
+        Alert.alert('📝 Registration Issue', friendlyMsg);
       }
     } catch (err) {
       console.error('Registration error:', err);
       const errorMessage = err.response?.data?.message || 'Network error. Please try again.';
-      setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      const friendlyMsg = getFriendlyErrorMessage(errorMessage);
+      setError(friendlyMsg);
+      Alert.alert('📝 Registration Issue', friendlyMsg);
     } finally {
       setLoading(false);
     }
@@ -97,15 +154,14 @@ const RegisterCustomerScreen = ({ navigation }) => {
   const handleGoogleRegister = async () => {
     if (isExpoGo) {
       Alert.alert(
-        'Info',
-        'Google Sign-In is not available in Expo Go.\nPlease use email/password registration or create a development build.',
-        [{ text: 'OK' }]
+        '🔧 Google Sign-In',
+        'Google Sign-In is not available in Expo Go. Please use email/password registration or build a development version.\n\n📱 Tip: Create a development build with "eas build --platform android --profile development"'
       );
       return;
     }
 
     if (!GoogleSignin) {
-      Alert.alert('Error', 'Google Sign-In is not available.');
+      Alert.alert('❌ Error', 'Google Sign-In is not available.');
       return;
     }
 
@@ -134,31 +190,26 @@ const RegisterCustomerScreen = ({ navigation }) => {
 
       if (response.data.success) {
         Alert.alert(
-          'Success', 
-          'Account created with Google successfully! You are now logged in.',
-          [
-            { 
-              text: 'OK', 
-              onPress: () => {
-                navigation.navigate('HomeTab');
-              } 
-            }
-          ]
+          '🌟 Welcome to CabIndia!',
+          `Great to have you onboard, ${response.data.user?.name || 'CabIndia rider'}! 🚗\n\nYour account is ready. Let's find you a ride!`
         );
+        // Navigate to the main app
+        navigation.navigate('HomeTab');
       } else {
-        Alert.alert('Registration Failed', response.data.message || 'Please try again.');
+        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
+        Alert.alert('📝 Registration Issue', friendlyMsg);
       }
     } catch (error) {
       console.error('Google registration error:', error);
       
       if (error.code === statusCodes?.SIGN_IN_CANCELLED) {
-        console.log('User cancelled Google sign-in');
+        Alert.alert('⏹️ Cancelled', 'Google sign-in was cancelled. You can try again or use email/password.');
       } else if (error.code === statusCodes?.IN_PROGRESS) {
-        Alert.alert('Error', 'Google sign-in is already in progress.');
+        Alert.alert('⏳ In Progress', 'Google sign-in is already in progress. Please wait.');
       } else if (error.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Google Play Services not available. Please update.');
+        Alert.alert('📱 Google Play Services', 'Please update Google Play Services on your device to use Google Sign-In.');
       } else {
-        Alert.alert('Error', error.message || 'Failed to register with Google. Please try again.');
+        Alert.alert('❌ Error', 'Failed to register with Google. Please try again or use email/password.');
       }
     } finally {
       setGoogleLoading(false);
@@ -224,7 +275,7 @@ const RegisterCustomerScreen = ({ navigation }) => {
               <View style={styles.passwordInputContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Enter your password"
+                  placeholder="Min 8 characters"
                   placeholderTextColor={COLORS.textMuted}
                   value={password}
                   onChangeText={setPassword}
@@ -250,7 +301,7 @@ const RegisterCustomerScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
 
-              {error && <Text style={styles.errorText}>{error}</Text>}
+              {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
 
               <TouchableOpacity
                 onPress={handleRegister}
@@ -426,6 +477,7 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: SIZES.small,
     marginTop: -SIZES.margin,
+    paddingHorizontal: SIZES.padding / 2,
   },
   registerButton: {
     backgroundColor: COLORS.primary,

@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshCont
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 const RideItem = ({ ride }) => {
   const getStatusColor = (status) => {

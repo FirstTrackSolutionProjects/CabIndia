@@ -8,7 +8,7 @@ import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-m
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
 
