@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 
 export default function WelcomeScreen({ navigation }) {
   return (

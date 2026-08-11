@@ -13,11 +13,6 @@ import { FONTS } from './src/styles/theme';
 
 // Import Ionicons from react-native-vector-icons directly
 import { Ionicons } from '@expo/vector-icons';
-import { loadIcons } from './src/utils/loadFonts';
-
-useEffect(() => {
-  loadIcons();
-}, []);
 
 // Ignore warnings
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);

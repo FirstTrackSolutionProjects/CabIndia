@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 import { calculateDistance } from '../utils/locationUtils';
 import api from '../utils/api';
 import Constants from 'expo-constants';

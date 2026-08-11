@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { COLORS, GLOBAL_STYLES, SIZES, FONTS } from '../styles/theme'; // NEW: Import FONTS
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 
 export default function SafetyScreen() {
   const safetyFeatures = [

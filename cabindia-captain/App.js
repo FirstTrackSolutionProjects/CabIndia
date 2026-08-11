@@ -11,11 +11,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import Ionicons from react-native-vector-icons directly
 import { Ionicons } from '@expo/vector-icons';
-import { loadIcons } from './src/utils/loadFonts';
-
-useEffect(() => {
-  loadIcons();
-}, []);
 
 // Keep splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(err => {

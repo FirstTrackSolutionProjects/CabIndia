@@ -2,7 +2,7 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { COLORS, GLOBAL_STYLES, SIZES, FONTS } from '../styles/theme';
-import Feather from 'react-native-vector-icons/Feather';
+import { Feather } from '@expo/vector-icons';
 
 const PolicyScreen = ({ route }) => {
   const { title, sections } = route.params;
