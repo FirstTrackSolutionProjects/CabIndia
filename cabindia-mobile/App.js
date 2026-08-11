@@ -42,7 +42,6 @@ import MoreScreen from './src/screens/MoreScreen';
 import PolicyScreen from './src/screens/PolicyScreen';
 import SafetyScreen from './src/screens/SafetyScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
-import CaptainApplicationScreen from './src/screens/CaptainApplicationScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
