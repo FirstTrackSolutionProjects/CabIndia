@@ -12,7 +12,12 @@ import { COLORS, SIZES } from './src/styles/theme';
 import { FONTS } from './src/styles/theme';
 
 // Import Ionicons from react-native-vector-icons directly
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
+import { loadIcons } from './src/utils/loadFonts';
+
+useEffect(() => {
+  loadIcons();
+}, []);
 
 // Ignore warnings
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
@@ -37,6 +42,7 @@ import MoreScreen from './src/screens/MoreScreen';
 import PolicyScreen from './src/screens/PolicyScreen';
 import SafetyScreen from './src/screens/SafetyScreen';
 import { AuthContext, AuthProvider } from './src/context/AuthContext';
+import CaptainApplicationScreen from './src/screens/CaptainApplicationScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();

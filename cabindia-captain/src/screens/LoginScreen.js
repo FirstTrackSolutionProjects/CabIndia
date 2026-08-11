@@ -28,6 +28,50 @@ if (!isExpoGo) {
   statusCodes = GoogleSigninModule.statusCodes;
 }
 
+// ============================================
+// USER-FRIENDLY ERROR MESSAGES
+// ============================================
+const USER_FRIENDLY_ERRORS = {
+  'Invalid credentials': '🔑 Oops! That email/password combination doesn\'t work. Please double-check and try again.',
+  'User not found': '📧 We couldn\'t find an account with that email. Would you like to create one?',
+  'Wrong password': '🔒 The password you entered is incorrect. Please try again or click "Forgot Password".',
+  'Email and Password are required': '📝 Please enter both your email and password to sign in.',
+  'Network error': '🌐 Having trouble connecting to our servers. Please check your internet connection.',
+  'Token is not valid': '⏰ Your session has expired. Please log in again.',
+  'No token, authorization denied': '🔐 Please log in to continue using CabIndia Captain.',
+  'Server error': '⚠️ Something went wrong on our end. Our team is working on it. Please try again later.',
+  'default': '🤔 Hmm, something went wrong. Please try again or contact support if the issue persists.'
+};
+
+const getFriendlyErrorMessage = (serverMessage) => {
+  if (!serverMessage) return USER_FRIENDLY_ERRORS.default;
+  
+  // Check for exact matches
+  if (USER_FRIENDLY_ERRORS[serverMessage]) {
+    return USER_FRIENDLY_ERRORS[serverMessage];
+  }
+  
+  // Check for partial matches
+  const lowerMsg = serverMessage.toLowerCase();
+  if (lowerMsg.includes('invalid') && lowerMsg.includes('credential')) {
+    return USER_FRIENDLY_ERRORS['Invalid credentials'];
+  }
+  if (lowerMsg.includes('user') && lowerMsg.includes('not found')) {
+    return USER_FRIENDLY_ERRORS['User not found'];
+  }
+  if (lowerMsg.includes('password') && lowerMsg.includes('incorrect')) {
+    return USER_FRIENDLY_ERRORS['Wrong password'];
+  }
+  if (lowerMsg.includes('network') || lowerMsg.includes('connection')) {
+    return USER_FRIENDLY_ERRORS['Network error'];
+  }
+  if (lowerMsg.includes('server') || lowerMsg.includes('internal')) {
+    return USER_FRIENDLY_ERRORS['Server error'];
+  }
+  
+  return serverMessage;
+};
+
 const LoginScreen = () => {
   const navigation = useNavigation();
   const { login } = useContext(AuthContext);
@@ -51,7 +95,10 @@ const LoginScreen = () => {
 
   const handleSubmit = async () => {
     if (!form.credential || !form.password) {
-      Alert.alert('Error', 'Please enter email and password.');
+      Alert.alert(
+        '📝 Missing Information',
+        'Please enter both your email and password to sign in.\n\nNeed an account? Tap "Register here" below!'
+      );
       return;
     }
 
@@ -64,16 +111,22 @@ const LoginScreen = () => {
       });
 
       if (response.data.success) {
+        Alert.alert(
+          '🎉 Welcome Back, Captain!',
+          `Great to see you again, ${response.data.user?.name || 'Captain'}! Ready to start earning?`
+        );
         await login(response.data.token, response.data.user);
-        Alert.alert('Success', response.data.message);
       } else {
-        setError(response.data.message || 'Login failed');
-        Alert.alert('Login Failed', response.data.message || 'Please try again.');
+        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
+        setError(friendlyMsg);
+        Alert.alert('🔑 Login Issue', friendlyMsg);
       }
     } catch (err) {
+      console.error('Login error:', err);
       const errorMessage = err.response?.data?.message || 'Network error. Please try again.';
-      setError(errorMessage);
-      Alert.alert('Error', errorMessage);
+      const friendlyMsg = getFriendlyErrorMessage(errorMessage);
+      setError(friendlyMsg);
+      Alert.alert('🔑 Login Issue', friendlyMsg);
     } finally {
       setLoading(false);
     }
@@ -82,15 +135,14 @@ const LoginScreen = () => {
   const handleGoogleLogin = async () => {
     if (isExpoGo) {
       Alert.alert(
-        'Info',
-        'Google Sign-In is not available in Expo Go.\nPlease use email/password login or create a development build.',
-        [{ text: 'OK' }]
+        '🔧 Google Sign-In',
+        'Google Sign-In is not available in Expo Go.\nPlease use email/password login or create a development build.\n\n📱 Tip: Create a development build with "eas build --platform android --profile development"'
       );
       return;
     }
 
     if (!GoogleSignin) {
-      Alert.alert('Error', 'Google Sign-In is not available.');
+      Alert.alert('❌ Error', 'Google Sign-In is not available.');
       return;
     }
 
@@ -118,22 +170,26 @@ const LoginScreen = () => {
       console.log('Google login response:', response.data);
 
       if (response.data.success) {
-        Alert.alert('Success', 'Logged in with Google successfully!');
+        Alert.alert(
+          '🌟 Welcome, Captain!',
+          `Great to have you onboard, ${response.data.user?.name || 'Captain'}! Let\'s start earning!`
+        );
         await login(response.data.token, response.data.user);
       } else {
-        Alert.alert('Login Failed', response.data.message || 'Please try again.');
+        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
+        Alert.alert('🔑 Login Issue', friendlyMsg);
       }
     } catch (error) {
       console.error('Google sign-in error:', error);
       
       if (error.code === statusCodes?.SIGN_IN_CANCELLED) {
-        console.log('User cancelled Google sign-in');
+        Alert.alert('⏹️ Cancelled', 'Google sign-in was cancelled. You can try again or use email/password.');
       } else if (error.code === statusCodes?.IN_PROGRESS) {
-        Alert.alert('Error', 'Google sign-in is already in progress.');
+        Alert.alert('⏳ In Progress', 'Google sign-in is already in progress. Please wait.');
       } else if (error.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Google Play Services not available. Please update.');
+        Alert.alert('📱 Google Play Services', 'Please update Google Play Services on your device to use Google Sign-In.');
       } else {
-        Alert.alert('Error', error.message || 'Failed to login with Google. Please try again.');
+        Alert.alert('❌ Error', 'Failed to login with Google. Please try again or use email/password.');
       }
     } finally {
       setGoogleLoading(false);
@@ -185,7 +241,7 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
 
             <TouchableOpacity
               onPress={handleSubmit}
@@ -355,6 +411,7 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: SIZES.small,
     marginTop: -SIZES.margin,
+    paddingHorizontal: SIZES.padding / 2,
   },
   loginButton: {
     backgroundColor: COLORS.primary,
