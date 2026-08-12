@@ -14,18 +14,6 @@ import { FontAwesome5, Feather } from '@expo/vector-icons';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
-import Constants from 'expo-constants';
-
-// Check if running in Expo Go
-const isExpoGo = Constants.appOwnership === 'expo';
-
-// Only import GoogleSignin if NOT in Expo Go
-let GoogleSignin, statusCodes;
-if (!isExpoGo) {
-  const GoogleSigninModule = require('@react-native-google-signin/google-signin');
-  GoogleSignin = GoogleSigninModule.GoogleSignin;
-  statusCodes = GoogleSigninModule.statusCodes;
-}
 
 // ============================================
 // USER-FRIENDLY ERROR MESSAGES
@@ -45,12 +33,10 @@ const USER_FRIENDLY_ERRORS = {
 const getFriendlyErrorMessage = (serverMessage) => {
   if (!serverMessage) return USER_FRIENDLY_ERRORS.default;
   
-  // Check for exact matches
   if (USER_FRIENDLY_ERRORS[serverMessage]) {
     return USER_FRIENDLY_ERRORS[serverMessage];
   }
   
-  // Check for partial matches
   const lowerMsg = serverMessage.toLowerCase();
   if (lowerMsg.includes('invalid') && lowerMsg.includes('credential')) {
     return USER_FRIENDLY_ERRORS['Invalid credentials'];
@@ -77,20 +63,7 @@ const LoginScreen = () => {
   const [showPwd, setShowPwd] = useState(false);
   const [form, setForm] = useState({ credential: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Configure Google Sign-In (only if not in Expo Go)
-  useEffect(() => {
-    if (!isExpoGo && GoogleSignin) {
-      GoogleSignin.configure({
-        webClientId: Constants.expoConfig?.extra?.googleClientId || '79474403137-kf7plivtq1cgkkeapit16a45oskepvtb.apps.googleusercontent.com',
-        offlineAccess: true,
-        hostedDomain: '',
-        forceCodeForRefreshToken: true,
-      });
-    }
-  }, []);
 
   const handleSubmit = async () => {
     if (!form.credential || !form.password) {
@@ -128,70 +101,6 @@ const LoginScreen = () => {
       Alert.alert('🔑 Login Issue', friendlyMsg);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    if (isExpoGo) {
-      Alert.alert(
-        '🔧 Google Sign-In',
-        'Google Sign-In is not available in Expo Go.\nPlease use email/password login or create a development build.\n\n📱 Tip: Create a development build with "eas build --platform android --profile development"'
-      );
-      return;
-    }
-
-    if (!GoogleSignin) {
-      Alert.alert('❌ Error', 'Google Sign-In is not available.');
-      return;
-    }
-
-    try {
-      setGoogleLoading(true);
-      
-      await GoogleSignin.hasPlayServices();
-      
-      const userInfo = await GoogleSignin.signIn();
-      console.log('Google user info:', userInfo);
-      
-      const { idToken, user } = userInfo;
-      
-      if (!idToken) {
-        throw new Error('No ID token received from Google');
-      }
-
-      const response = await api.post('/api/auth/google', {
-        idToken: idToken,
-        email: user.email,
-        name: user.name,
-        picture: user.photo,
-      });
-
-      console.log('Google login response:', response.data);
-
-      if (response.data.success) {
-        Alert.alert(
-          '🌟 Welcome, Captain!',
-          `Great to have you onboard, ${response.data.user?.name || 'Captain'}! Let\'s start earning!`
-        );
-        await login(response.data.token, response.data.user);
-      } else {
-        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
-        Alert.alert('🔑 Login Issue', friendlyMsg);
-      }
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      
-      if (error.code === statusCodes?.SIGN_IN_CANCELLED) {
-        Alert.alert('⏹️ Cancelled', 'Google sign-in was cancelled. You can try again or use email/password.');
-      } else if (error.code === statusCodes?.IN_PROGRESS) {
-        Alert.alert('⏳ In Progress', 'Google sign-in is already in progress. Please wait.');
-      } else if (error.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('📱 Google Play Services', 'Please update Google Play Services on your device to use Google Sign-In.');
-      } else {
-        Alert.alert('❌ Error', 'Failed to login with Google. Please try again or use email/password.');
-      }
-    } finally {
-      setGoogleLoading(false);
     }
   };
 
@@ -256,29 +165,6 @@ const LoginScreen = () => {
               )}
             </TouchableOpacity>
           </View>
-
-          <View style={styles.dividerWithText}>
-            <View style={styles.line} />
-            <Text style={styles.orText}>OR</Text>
-            <View style={styles.line} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleButton, googleLoading && { opacity: 0.7 }]}
-            onPress={handleGoogleLogin}
-            disabled={googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={COLORS.text} size="small" />
-            ) : (
-              <>
-                <FontAwesome5 name="google" size={20} color={COLORS.text} />
-                <Text style={styles.googleButtonText}>
-                  {isExpoGo ? 'Google (Dev Only)' : 'Continue with Google'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
 
           <Text style={styles.registerText}>
             Don't have an account?{' '}
@@ -426,40 +312,6 @@ const styles = StyleSheet.create({
     color: COLORS.background,
     fontFamily: FONTS.bold,
     fontSize: SIZES.medium,
-  },
-  dividerWithText: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: SIZES.margin * 2,
-  },
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.borderColor,
-  },
-  orText: {
-    ...GLOBAL_STYLES.text,
-    fontSize: SIZES.small - 1,
-    fontFamily: FONTS.bold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginHorizontal: SIZES.margin,
-  },
-  googleButton: {
-    backgroundColor: COLORS.inputBackground,
-    borderWidth: 1,
-    borderColor: COLORS.borderColor,
-    borderRadius: SIZES.radius,
-    paddingVertical: SIZES.padding * 0.8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: SIZES.margin,
-  },
-  googleButtonText: {
-    ...GLOBAL_STYLES.text,
-    fontSize: SIZES.medium - 1,
-    fontFamily: FONTS.semibold,
   },
   registerText: {
     ...GLOBAL_STYLES.text,

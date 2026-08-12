@@ -3,12 +3,13 @@ import React, { useContext, useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Alert, 
   ActivityIndicator, ScrollView, TextInput, Modal,
-  Switch, KeyboardAvoidingView, Platform
+  Switch, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../utils/api';
 
 export default function ProfileScreen() {
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
   
   // Edit Profile Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -52,19 +54,39 @@ export default function ProfileScreen() {
       setEditName(userData.name || '');
       setEditEmail(userData.email || '');
       setEditMobile(userData.mobile || '');
+      setProfileImage(userData.profileImage || null);
     }
     fetchPaymentMethods();
+    fetchSettings();
   }, [userData]);
 
   const fetchPaymentMethods = async () => {
     try {
-      const response = await api.get('/user/payment-methods');
+      const response = await api.get('/api/user/payment-methods');
       if (response.data.success) {
         setPaymentMethods(response.data.methods);
         setDefaultPayment(response.data.defaultMethod);
       }
     } catch (error) {
       console.log('Payment methods fetch error:', error);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const response = await api.get('/api/user/settings');
+      if (response.data.success) {
+        const data = response.data.settings;
+        setSettings({
+          notifications: data.notifications === 1,
+          darkMode: data.dark_mode === 1,
+          locationTracking: data.location_tracking === 1,
+          shareData: data.share_data === 1,
+          autoBook: data.auto_book === 1,
+        });
+      }
+    } catch (error) {
+      console.log('Settings fetch error:', error);
     }
   };
 
@@ -87,6 +109,55 @@ export default function ProfileScreen() {
     );
   };
 
+  // ==================== PROFILE PICTURE ====================
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permission to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        const base64 = result.assets[0].base64;
+        
+        // Upload profile picture
+        setLoading(true);
+        try {
+          const response = await api.post('/api/user/profile-picture', {
+            image: base64,
+          });
+          
+          if (response.data.success) {
+            setProfileImage(imageUri);
+            const updatedUser = { ...userProfile, profileImage: imageUri };
+            await login(userData.token, updatedUser);
+            Alert.alert('Success', 'Profile picture updated!');
+          } else {
+            Alert.alert('Error', response.data.message || 'Failed to upload image');
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+          Alert.alert('Error', 'Failed to upload profile picture');
+        } finally {
+          setLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Image pick error:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
   // ==================== EDIT PROFILE ====================
   const openEditProfile = () => {
     setEditName(userProfile?.name || '');
@@ -103,7 +174,7 @@ export default function ProfileScreen() {
     
     setEditLoading(true);
     try {
-      const response = await api.put('/user/profile', {
+      const response = await api.put('/api/user/profile', {
         name: editName.trim(),
         email: editEmail.trim(),
         mobile: editMobile.trim(),
@@ -111,7 +182,7 @@ export default function ProfileScreen() {
       
       if (response.data.success) {
         const updatedUser = { ...userProfile, name: editName.trim(), email: editEmail.trim(), mobile: editMobile.trim() };
-        await login(userData.token, updatedUser);
+        await login(response.data.token, updatedUser);
         setUserProfile(updatedUser);
         setEditModalVisible(false);
         Alert.alert('Success', 'Profile updated successfully!');
@@ -149,7 +220,7 @@ export default function ProfileScreen() {
   const savePaymentMethods = async () => {
     setEditLoading(true);
     try {
-      const response = await api.post('/user/payment-methods', {
+      const response = await api.post('/api/user/payment-methods', {
         methods: paymentMethods,
         defaultMethod: defaultPayment,
       });
@@ -180,7 +251,7 @@ export default function ProfileScreen() {
   const saveSettings = async () => {
     setEditLoading(true);
     try {
-      const response = await api.post('/user/settings', settings);
+      const response = await api.post('/api/user/settings', settings);
       
       if (response.data.success) {
         setSettingsModalVisible(false);
@@ -217,9 +288,16 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <Ionicons name="person" size={40} color={COLORS.primary} />
-        </View>
+        <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <Ionicons name="person" size={40} color={COLORS.primary} />
+          )}
+          <View style={styles.cameraIcon}>
+            <Ionicons name="camera" size={14} color={COLORS.background} />
+          </View>
+        </TouchableOpacity>
         <Text style={styles.name}>{userProfile.name || 'User Name'}</Text>
         <Text style={styles.email}>{userProfile.email || 'user@example.com'}</Text>
         {userProfile.mobile && (
@@ -594,6 +672,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SIZES.margin,
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   name: {
     fontSize: SIZES.h2,

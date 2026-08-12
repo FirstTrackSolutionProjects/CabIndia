@@ -1,5 +1,5 @@
 // cabindia-captain/src/screens/RegisterScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthContext } from '../../App';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import api from '../utils/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================
 // STEP CONFIGURATION
@@ -73,6 +75,8 @@ export default function RegisterScreen() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [savedForm, setSavedForm] = useState(null);
+  const [isResuming, setIsResuming] = useState(false);
 
   // ============================================
   // FORM STATE
@@ -131,6 +135,49 @@ export default function RegisterScreen() {
     bankPassbook: null,
   });
 
+  // Load saved progress
+  useEffect(() => {
+    loadSavedProgress();
+  }, []);
+
+  const loadSavedProgress = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('captainRegistration');
+      if (saved) {
+        const data = JSON.parse(saved);
+        setSavedForm(data);
+        setForm(data);
+        setIsResuming(true);
+        Alert.alert(
+          '📋 Resume Registration',
+          'We found your saved registration progress. Would you like to continue where you left off?',
+          [
+            { text: 'Start Fresh', onPress: () => {
+                AsyncStorage.removeItem('captainRegistration');
+                setIsResuming(false);
+              } 
+            },
+            { text: 'Continue', onPress: () => {
+                setCurrentStep(data.currentStep || 1);
+              } 
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Load saved progress error:', error);
+    }
+  };
+
+  const saveProgress = async () => {
+    try {
+      const data = { ...form, currentStep };
+      await AsyncStorage.setItem('captainRegistration', JSON.stringify(data));
+    } catch (error) {
+      console.error('Save progress error:', error);
+    }
+  };
+
   // ============================================
   // HELPERS
   // ============================================
@@ -148,6 +195,7 @@ export default function RegisterScreen() {
     if (validateStep(currentStep)) {
       if (currentStep < STEPS.length) {
         setCurrentStep(currentStep + 1);
+        saveProgress();
       } else {
         handleSubmit();
       }
@@ -157,6 +205,7 @@ export default function RegisterScreen() {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      saveProgress();
     }
   };
 
@@ -306,6 +355,7 @@ export default function RegisterScreen() {
       if (!result.canceled && result.assets[0]) {
         updateForm(field, result.assets[0].uri);
         Alert.alert('✅ Uploaded', `${field} uploaded successfully!`);
+        saveProgress();
       }
     } catch (error) {
       console.error('Image pick error:', error);
@@ -325,6 +375,7 @@ export default function RegisterScreen() {
       if (result.assets && result.assets[0]) {
         updateForm(field, result.assets[0].uri);
         Alert.alert('✅ Uploaded', `${field} uploaded successfully!`);
+        saveProgress();
       }
     } catch (error) {
       console.error('Document pick error:', error);
@@ -338,8 +389,7 @@ export default function RegisterScreen() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Register the user first
-      const registerResponse = await api.post('/api/auth/register', {
+      const response = await api.post('/api/auth/register', {
         name: form.fullName,
         email: form.email,
         mobile: form.phone,
@@ -347,14 +397,13 @@ export default function RegisterScreen() {
         confirmPassword: form.confirmPassword,
       });
 
-      if (!registerResponse.data.success) {
-        const friendlyMsg = getFriendlyErrorMessage(registerResponse.data.message);
+      if (!response.data.success) {
+        const friendlyMsg = getFriendlyErrorMessage(response.data.message);
         Alert.alert('📝 Registration Issue', friendlyMsg);
         setLoading(false);
         return;
       }
 
-      // Login to get token
       const loginResponse = await api.post('/api/auth/login', {
         email: form.email,
         password: form.password,
@@ -367,7 +416,6 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Apply as captain with the token
       const token = loginResponse.data.token;
       const applyResponse = await api.post('/api/drivers/apply', {
         userId: loginResponse.data.user.id,
@@ -376,12 +424,14 @@ export default function RegisterScreen() {
         vehicleType: form.vehicleType,
         licenseNumber: form.dlNumber,
         experience: '0',
+        formData: form,
       }, {
         headers: { 'x-auth-token': token }
       });
 
       if (applyResponse.data.success) {
         setSubmitted(true);
+        await AsyncStorage.removeItem('captainRegistration');
         Alert.alert(
           '🎉 Application Submitted!',
           'We will review your documents and get back to you within 48 hours.',
@@ -978,6 +1028,11 @@ export default function RegisterScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>🚗 Become a Captain</Text>
           <Text style={styles.headerSubtitle}>Join CabIndia's driver network</Text>
+          {isResuming && (
+            <View style={styles.resumeBadge}>
+              <Text style={styles.resumeBadgeText}>📋 Resuming saved progress</Text>
+            </View>
+          )}
         </View>
 
         {/* Step Indicator */}
@@ -994,7 +1049,8 @@ export default function RegisterScreen() {
 
         {/* Navigation */}
         <View style={styles.navButtons}>
-          <TouchableOpacity            style={[styles.navButton, currentStep === 1 && styles.navButtonDisabled]}
+          <TouchableOpacity
+            style={[styles.navButton, currentStep === 1 && styles.navButtonDisabled]}
             onPress={prevStep}
             disabled={currentStep === 1}
           >
@@ -1037,6 +1093,14 @@ export default function RegisterScreen() {
         <Text style={styles.footerNote}>
           ⚡ All documents will be verified. You'll receive a confirmation within 48 hours.
         </Text>
+        
+        <TouchableOpacity 
+          style={styles.saveProgressButton}
+          onPress={saveProgress}
+        >
+          <Ionicons name="save-outline" size={16} color={COLORS.primary} />
+          <Text style={styles.saveProgressText}>Save Progress</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -1070,6 +1134,32 @@ const styles = StyleSheet.create({
     fontSize: SIZES.medium,
     color: COLORS.textMuted,
     marginTop: 4,
+  },
+  resumeBadge: {
+    marginTop: SIZES.margin,
+    backgroundColor: `${COLORS.primary}1A`,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  resumeBadgeText: {
+    color: COLORS.primary,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.semibold,
+  },
+  saveProgressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SIZES.margin,
+    gap: 8,
+  },
+  saveProgressText: {
+    color: COLORS.primary,
+    fontSize: SIZES.small,
+    fontFamily: FONTS.semibold,
   },
 
   // Step Indicator

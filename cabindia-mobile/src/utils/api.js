@@ -52,4 +52,13 @@ api.interceptors.response.use(
   }
 );
 
+// Wallet API methods
+export const walletApi = {
+  getBalance: () => api.get('/api/wallet/balance'),
+  recharge: (amount, paymentMethod) => api.post('/api/wallet/recharge', { amount, paymentMethod }),
+  verifyPayment: (orderId, paymentId, signature) => 
+    api.post('/api/wallet/verify-payment', { orderId, paymentId, signature }),
+  getTransactions: () => api.get('/api/wallet/transactions'),
+};
+
 export default api;

@@ -13,19 +13,17 @@ import {
   Linking,
   Platform
 } from 'react-native';
-import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, AnimatedRegion, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 import Constants from 'expo-constants';
+import { getRealDistance } from '../utils/locationUtils';
 
 const { height, width } = Dimensions.get('window');
 
-// ============================================
-// BACKEND URL - Using Constants exclusively
-// ============================================
 import { SOCKET_URL, GOOGLE_MAPS_API_KEY } from '../config';
 
 console.log('🔌 Socket connecting to:', SOCKET_URL);
@@ -40,7 +38,7 @@ const getSocket = () => {
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       timeout: 10000,
     });
@@ -60,6 +58,59 @@ const getSocket = () => {
   return socket;
 };
 
+// Decode polyline
+const decodePolyline = (encoded) => {
+  const points = [];
+  let index = 0, len = encoded.length;
+  let lat = 0, lng = 0;
+
+  while (index < len) {
+    let b, shift = 0, result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+    lng += dlng;
+
+    points.push({
+      latitude: lat / 1e5,
+      longitude: lng / 1e5,
+    });
+  }
+  return points;
+};
+
+// Get route from Directions API
+const getRoute = async (originLat, originLon, destLat, destLon) => {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLon}&destination=${destLat},${destLon}&key=${GOOGLE_MAPS_API_KEY}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const points = decodePolyline(route.overview_polyline.points);
+      return points;
+    }
+    return [];
+  } catch (error) {
+    console.error('Route error:', error);
+    return [];
+  }
+};
+
 const MapScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
@@ -77,6 +128,8 @@ const MapScreen = () => {
     dropoffLat,
     dropoffLon,
     paymentMethod,
+    distance: routeDistance,
+    duration: routeDuration,
   } = route.params || {};
 
   const [rideId] = useState(routeRideId || null);
@@ -87,6 +140,7 @@ const MapScreen = () => {
   const [rideStatus, setRideStatus] = useState('searching');
   const [timer, setTimer] = useState(0);
   const [isDriverAssigned, setIsDriverAssigned] = useState(false);
+  const [routePoints, setRoutePoints] = useState([]);
   
   const mapRef = useRef(null);
   const markerRef = useRef(null);
@@ -154,7 +208,29 @@ const MapScreen = () => {
   }, []);
 
   // ============================================
-  // 2. SOCKET.IO - RIDE TRACKING
+  // 2. FETCH ROUTE
+  // ============================================
+  useEffect(() => {
+    const fetchRouteData = async () => {
+      if (pickupLat && pickupLon && dropoffLat && dropoffLon) {
+        const points = await getRoute(pickupLat, pickupLon, dropoffLat, dropoffLon);
+        setRoutePoints(points);
+        
+        if (mapRef.current && points.length > 0) {
+          const first = points[0];
+          const last = points[points.length - 1];
+          mapRef.current.fitToCoordinates(
+            [first, last],
+            { edgePadding: { top: 80, right: 80, bottom: 180, left: 80 }, animated: true }
+          );
+        }
+      }
+    };
+    fetchRouteData();
+  }, [pickupLat, pickupLon, dropoffLat, dropoffLon]);
+
+  // ============================================
+  // 3. SOCKET.IO - RIDE TRACKING
   // ============================================
   useEffect(() => {
     if (!rideId) return;
@@ -167,7 +243,7 @@ const MapScreen = () => {
     socket.emit('join_ride', rideId);
 
     // ============================================
-    // 2a. LISTEN FOR DRIVER LOCATION UPDATES
+    // 3a. LISTEN FOR DRIVER LOCATION UPDATES
     // ============================================
     const locationHandler = (data) => {
       console.log(`📍 Location update for ride ${data.rideId}:`, data);
@@ -196,32 +272,17 @@ const MapScreen = () => {
           phone: data.driverPhone || 'N/A',
           vehicle: data.vehicleNumber || 'N/A',
           rating: data.driverRating || 4.5,
+          id: data.driverId,
         });
       }
 
       if (data.status) {
         setRideStatus(data.status);
       }
-
-      if (mapRef.current && pickupLat && pickupLon) {
-        const coordinates = [
-          { latitude: pickupLat, longitude: pickupLon },
-          { latitude: data.latitude, longitude: data.longitude },
-        ];
-        
-        if (dropoffLat && dropoffLon) {
-          coordinates.push({ latitude: dropoffLat, longitude: dropoffLon });
-        }
-
-        mapRef.current.fitToCoordinates(coordinates, {
-          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-          animated: true,
-        });
-      }
     };
 
     // ============================================
-    // 2b. LISTEN FOR RIDE STATUS CHANGES
+    // 3b. LISTEN FOR RIDE STATUS CHANGES
     // ============================================
     const statusHandler = (data) => {
       console.log(`📊 Ride status update:`, data);
@@ -237,7 +298,7 @@ const MapScreen = () => {
     };
 
     // ============================================
-    // 2c. LISTEN FOR DRIVER ASSIGNED
+    // 3c. LISTEN FOR DRIVER ASSIGNED
     // ============================================
     const assignedHandler = (data) => {
       console.log('👤 Driver assigned:', data);
@@ -248,6 +309,7 @@ const MapScreen = () => {
         phone: data.driverPhone || 'N/A',
         vehicle: data.vehicleNumber || 'N/A',
         rating: data.driverRating || 4.5,
+        id: data.driverId,
       });
       
       Alert.alert(
@@ -258,7 +320,7 @@ const MapScreen = () => {
     };
 
     // ============================================
-    // 2d. LISTEN FOR DRIVER CANCELLED
+    // 3d. LISTEN FOR RIDE CANCELLED
     // ============================================
     const cancelledHandler = (data) => {
       console.log('❌ Ride cancelled:', data);
@@ -277,7 +339,7 @@ const MapScreen = () => {
     socket.on(`ride_cancelled_${rideId}`, cancelledHandler);
 
     // ============================================
-    // 3. TIMER FOR SEARCHING
+    // 4. TIMER FOR SEARCHING
     // ============================================
     if (isSearching) {
       timerInterval.current = setInterval(() => {
@@ -286,7 +348,7 @@ const MapScreen = () => {
     }
 
     // ============================================
-    // 4. CLEANUP
+    // 5. CLEANUP
     // ============================================
     return () => {
       console.log('🧹 Cleaning up MapScreen socket listeners');
@@ -303,10 +365,10 @@ const MapScreen = () => {
         socketInstance.current.off(`ride_cancelled_${rideId}`, cancelledHandler);
       }
     };
-  }, [rideId]);
+  }, [rideId, isSearching, navigation]);
 
   // ============================================
-  // 5. HANDLE DRIVER CONTACT
+  // 6. HANDLE DRIVER CONTACT
   // ============================================
   const handleCallDriver = () => {
     if (!driverInfo?.phone) {
@@ -332,7 +394,7 @@ const MapScreen = () => {
   };
 
   // ============================================
-  // 6. HANDLE RIDE CANCELLATION
+  // 7. HANDLE RIDE CANCELLATION
   // ============================================
   const handleCancelRide = () => {
     Alert.alert(
@@ -346,7 +408,7 @@ const MapScreen = () => {
           onPress: async () => {
             try {
               const api = require('../utils/api').default;
-              await api.post(`/rides/${rideId}/cancel`, {
+              await api.post(`/api/rides/${rideId}/cancel`, {
                 cancellationReason: 'Cancelled by user',
               });
               
@@ -365,7 +427,7 @@ const MapScreen = () => {
   };
 
   // ============================================
-  // 7. RENDER
+  // 8. RENDER
   // ============================================
   const renderSearching = () => (
     <View style={styles.searchingContainer}>
@@ -443,7 +505,7 @@ const MapScreen = () => {
             <View style={styles.driverInfo}>
               <Text style={styles.driverName}>{driverInfo.name || 'Captain'}</Text>
               <View style={styles.driverRatingRow}>
-                <Feather name="star" size={12} color={COLORS.primary} />
+                <Ionicons name="star" size={12} color={COLORS.primary} />
                 <Text style={styles.driverRating}>{driverInfo.rating || 4.5} ★</Text>
                 <Text style={styles.driverVehicle}>{driverInfo.vehicle || 'Vehicle'}</Text>
               </View>
@@ -452,18 +514,18 @@ const MapScreen = () => {
 
           <View style={styles.driverActions}>
             <TouchableOpacity style={styles.driverActionBtn} onPress={handleCallDriver}>
-              <Feather name="phone" size={18} color={COLORS.background} />
+              <Ionicons name="call" size={18} color={COLORS.background} />
               <Text style={styles.driverActionText}>Call</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.driverActionBtn} onPress={handleChatWithDriver}>
-              <Feather name="message-circle" size={18} color={COLORS.background} />
+              <Ionicons name="chatbubble" size={18} color={COLORS.background} />
               <Text style={styles.driverActionText}>Chat</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.driverActionBtn, styles.cancelBtn]} 
               onPress={handleCancelRide}
             >
-              <Feather name="x" size={18} color="#ef4444" />
+              <Ionicons name="close" size={18} color="#ef4444" />
               <Text style={[styles.driverActionText, styles.cancelText]}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -485,13 +547,12 @@ const MapScreen = () => {
         initialRegion={defaultRegion}
         showsUserLocation={true}
         followsUserLocation={true}
-        showsTraffic={false}
+        showsTraffic={true}
         showsCompass={true}
         showsScale={true}
         loadingEnabled
         loadingIndicatorColor={COLORS.primary}
         loadingBackgroundColor={COLORS.background}
-        // IMPORTANT: Add googleMapsApiKey prop
         googleMapsApiKey={GOOGLE_MAPS_API_KEY}
         onMapReady={() => console.log('🗺️ MapScreen map is ready!')}
       >
@@ -522,6 +583,17 @@ const MapScreen = () => {
           />
         )}
 
+        {/* Route Polyline */}
+        {routePoints.length > 0 && (
+          <Polyline
+            coordinates={routePoints}
+            strokeColor={COLORS.primary}
+            strokeWidth={5}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
+
         {/* Driver Marker - Animated */}
         {driverLocation && (
           <Marker.Animated
@@ -546,7 +618,7 @@ const MapScreen = () => {
         style={styles.backButton} 
         onPress={() => navigation.goBack()}
       >
-        <Feather name="arrow-left" size={22} color={COLORS.text} />
+        <Ionicons name="arrow-back" size={22} color={COLORS.text} />
       </TouchableOpacity>
 
       {/* Cancel Button (Top Right) */}
@@ -555,7 +627,7 @@ const MapScreen = () => {
           style={styles.cancelButton} 
           onPress={handleCancelRide}
         >
-          <Feather name="x" size={20} color="#ef4444" />
+          <Ionicons name="close" size={20} color="#ef4444" />
         </TouchableOpacity>
       )}
 

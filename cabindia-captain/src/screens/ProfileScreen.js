@@ -3,17 +3,19 @@ import React, { useContext, useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Alert, 
   ActivityIndicator, ScrollView, TextInput, Modal,
-  Switch, KeyboardAvoidingView, Platform 
+  Switch, KeyboardAvoidingView, Platform, Image 
 } from 'react-native';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, GLOBAL_STYLES, FONTS } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../utils/api';
 
 export default function ProfileScreen({ navigation }) {
   const { userData, logout, login } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
   
   // Edit Profile Modal State
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -35,6 +37,16 @@ export default function ProfileScreen({ navigation }) {
     insuranceValid: true,
   });
   const [vehicleLoading, setVehicleLoading] = useState(false);
+  
+  // Bank Verification Modal State
+  const [bankModalVisible, setBankModalVisible] = useState(false);
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    accountNumber: '',
+    ifsc: '',
+    bankName: '',
+  });
+  const [bankLoading, setBankLoading] = useState(false);
   
   // Payment Settings Modal State
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -69,10 +81,12 @@ export default function ProfileScreen({ navigation }) {
       setEditName(userData.name || '');
       setEditEmail(userData.email || '');
       setEditMobile(userData.mobile || '');
+      setProfileImage(userData.profileImage || null);
     }
     fetchVehicleDetails();
     fetchPaymentMethods();
     fetchSettings();
+    fetchBankDetails();
   }, [userData]);
 
   const fetchVehicleDetails = async () => {
@@ -117,6 +131,65 @@ export default function ProfileScreen({ navigation }) {
       }
     } catch (error) {
       console.log('Settings fetch error:', error);
+    }
+  };
+
+  const fetchBankDetails = async () => {
+    try {
+      const response = await api.get('/api/drivers/bank-details');
+      if (response.data.success) {
+        setBankDetails(response.data.bankDetails);
+      }
+    } catch (error) {
+      console.log('Bank details fetch error:', error);
+    }
+  };
+
+  // ==================== PROFILE PICTURE ====================
+  const pickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please grant camera roll permission to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        const base64 = result.assets[0].base64;
+        
+        setLoading(true);
+        try {
+          const response = await api.post('/api/user/profile-picture', {
+            image: base64,
+          });
+          
+          if (response.data.success) {
+            setProfileImage(imageUri);
+            const updatedUser = { ...userProfile, profileImage: imageUri };
+            await login(response.data.token, updatedUser);
+            Alert.alert('Success', 'Profile picture updated!');
+          } else {
+            Alert.alert('Error', response.data.message || 'Failed to upload image');
+          }
+        } catch (error) {
+          console.error('Image upload error:', error);
+          Alert.alert('Error', 'Failed to upload profile picture');
+        } finally {
+          setLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Image pick error:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };
 
@@ -200,6 +273,40 @@ export default function ProfileScreen({ navigation }) {
       Alert.alert('Error', 'Failed to save vehicle details');
     } finally {
       setVehicleLoading(false);
+    }
+  };
+
+  // ==================== BANK VERIFICATION ====================
+  const openBankVerification = () => {
+    setBankModalVisible(true);
+  };
+
+  const handleBankChange = (key, value) => {
+    setBankDetails(prev => ({ ...prev, [key]: value }));
+  };
+
+  const saveBankDetails = async () => {
+    if (!bankDetails.accountHolderName || !bankDetails.accountNumber || 
+        !bankDetails.ifsc || !bankDetails.bankName) {
+      Alert.alert('Error', 'All bank details are required');
+      return;
+    }
+    
+    setBankLoading(true);
+    try {
+      const response = await api.post('/api/drivers/bank-details', bankDetails);
+      
+      if (response.data.success) {
+        setBankModalVisible(false);
+        Alert.alert('Success', 'Bank details verified successfully!');
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to verify bank details');
+      }
+    } catch (error) {
+      console.error('Bank details save error:', error);
+      Alert.alert('Error', 'Failed to save bank details');
+    } finally {
+      setBankLoading(false);
     }
   };
 
@@ -299,9 +406,16 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <View style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <Ionicons name="person" size={40} color={COLORS.primary} />
-        </View>
+        <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <Ionicons name="person" size={40} color={COLORS.primary} />
+          )}
+          <View style={styles.cameraIcon}>
+            <Ionicons name="camera" size={14} color={COLORS.background} />
+          </View>
+        </TouchableOpacity>
         <Text style={styles.name}>{userProfile?.name || 'Captain'}</Text>
         <Text style={styles.email}>{userProfile?.email || 'captain@cabindia.in'}</Text>
         {userProfile?.mobile && (
@@ -333,10 +447,19 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
 
+        {/* Bank Verification */}
+        <TouchableOpacity style={styles.menuItem} onPress={openBankVerification}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuText}>Bank Verification</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
         {/* Payment Settings */}
         <TouchableOpacity style={styles.menuItem} onPress={openPaymentSettings}>
           <View style={styles.menuIconWrapper}>
-            <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+            <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
           </View>
           <Text style={styles.menuText}>Payment Settings</Text>
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
@@ -576,6 +699,103 @@ export default function ProfileScreen({ navigation }) {
                   <ActivityIndicator color={COLORS.background} size="small" />
                 ) : (
                   <Text style={styles.modalSaveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ==================== BANK VERIFICATION MODAL ==================== */}
+      <Modal
+        visible={bankModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setBankModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Bank Verification</Text>
+              <TouchableOpacity onPress={() => setBankModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Account Holder Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="As per bank records"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={bankDetails.accountHolderName}
+                  onChangeText={(text) => handleBankChange('accountHolderName', text)}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Account Number *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter account number"
+                  placeholderTextColor={COLORS.textMuted}
+                  keyboardType="numeric"
+                  value={bankDetails.accountNumber}
+                  onChangeText={(text) => handleBankChange('accountNumber', text)}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>IFSC Code *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="SBIN0001234"
+                  placeholderTextColor={COLORS.textMuted}
+                  autoCapitalize="characters"
+                  value={bankDetails.ifsc}
+                  onChangeText={(text) => handleBankChange('ifsc', text)}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Bank Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="State Bank of India"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={bankDetails.bankName}
+                  onChangeText={(text) => handleBankChange('bankName', text)}
+                />
+              </View>
+
+              <View style={styles.noteBox}>
+                <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+                <Text style={styles.noteText}>
+                  Your bank details will be verified within 48 hours. This is required for payment processing.
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setBankModalVisible(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSaveButton]} 
+                onPress={saveBankDetails}
+                disabled={bankLoading}
+              >
+                {bankLoading ? (
+                  <ActivityIndicator color={COLORS.background} size="small" />
+                ) : (
+                  <Text style={styles.modalSaveText}>Submit</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -962,6 +1182,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SIZES.margin,
+    position: 'relative',
+  },
+  avatarImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
   },
   name: {
     fontSize: SIZES.h2,
@@ -1164,6 +1403,25 @@ const styles = StyleSheet.create({
     fontSize: SIZES.small,
     fontFamily: FONTS.semibold,
     color: COLORS.text,
+  },
+
+  // Bank Verification
+  noteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: `${COLORS.primary}0A`,
+    borderRadius: SIZES.radius,
+    borderWidth: 1,
+    borderColor: `${COLORS.primary}30`,
+    padding: SIZES.padding,
+    marginTop: SIZES.margin,
+  },
+  noteText: {
+    flex: 1,
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    lineHeight: 18,
   },
 
   // Payment Methods

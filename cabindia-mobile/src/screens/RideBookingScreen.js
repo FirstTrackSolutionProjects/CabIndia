@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   Alert, KeyboardAvoidingView, Platform, Dimensions,
-  ActivityIndicator, Image, FlatList, Switch
+  ActivityIndicator, Image, FlatList, Switch, Modal,
+  ScrollView
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
@@ -19,18 +20,17 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import Constants from 'expo-constants';
+import { getRealDistance } from '../utils/locationUtils';
 
-const { height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight, width: screenWidth } = Dimensions.get('window');
 
 // Google Maps API Key
 const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.android?.config?.googleMaps?.apiKey ||
   Constants.expoConfig?.ios?.infoPlist?.GOOGLE_MAPS_API_KEY ||
   'AIzaSyAD7ImoIAlAk6Ob9Iwyd_67UFr9lCNVTNY';
 
-console.log('🗺️ Google Maps API Key:', GOOGLE_MAPS_API_KEY ? 'Configured ✅' : 'Missing ❌');
-
-const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.30;
-const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.72;
+const BOTTOM_SHEET_MIN_HEIGHT = screenHeight * 0.25;
+const BOTTOM_SHEET_MAX_HEIGHT = screenHeight * 0.8;
 const BOTTOM_SHEET_DRAG_AREA_HEIGHT = 40;
 
 // Map types
@@ -116,32 +116,29 @@ const decodePolyline = (encoded) => {
   return points;
 };
 
-// Get multiple route options
-const getRouteOptions = async (originLat, originLon, destLat, destLon) => {
+// Get route from Directions API
+const getRoute = async (originLat, originLon, destLat, destLon) => {
   try {
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLon}&destination=${destLat},${destLon}&key=${GOOGLE_MAPS_API_KEY}&alternatives=true`;
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originLat},${originLon}&destination=${destLat},${destLon}&key=${GOOGLE_MAPS_API_KEY}`;
     const response = await fetch(url);
     const data = await response.json();
     
     if (data.routes && data.routes.length > 0) {
-      return data.routes.map((route, index) => {
-        const points = decodePolyline(route.overview_polyline.points);
-        const leg = route.legs[0];
-        return {
-          id: index,
-          points,
-          distance: leg.distance.text,
-          duration: leg.duration.text,
-          durationInSeconds: leg.duration.value,
-          distanceInMeters: leg.distance.value,
-          summary: route.summary || 'Route',
-        };
-      });
+      const route = data.routes[0];
+      const points = decodePolyline(route.overview_polyline.points);
+      const leg = route.legs[0];
+      return {
+        points,
+        distance: leg.distance.text,
+        duration: leg.duration.text,
+        distanceInMeters: leg.distance.value,
+        durationInSeconds: leg.duration.value,
+      };
     }
-    return [];
+    return null;
   } catch (error) {
-    console.error('Route options error:', error);
-    return [];
+    console.error('Route error:', error);
+    return null;
   }
 };
 
@@ -159,26 +156,22 @@ export default function RideBookingScreen() {
   const [destSuggestions, setDestSuggestions] = useState([]);
   const [showSourceSuggestions, setShowSourceSuggestions] = useState(false);
   const [showDestSuggestions, setShowDestSuggestions] = useState(false);
-  
-  // Route options
-  const [routeOptions, setRouteOptions] = useState([]);
-  const [selectedRoute, setSelectedRoute] = useState(0);
-  const [showRouteOptions, setShowRouteOptions] = useState(false);
+  const [routePoints, setRoutePoints] = useState([]);
+  const [showFullSheet, setShowFullSheet] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Map controls
   const [mapType, setMapType] = useState('standard');
   const [showMapControls, setShowMapControls] = useState(false);
-  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
   
   const mapRef = useRef(null);
-
-  // Debounce timers
   const sourceDebounce = useRef(null);
   const destDebounce = useRef(null);
 
   const sheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
   const startSheetHeight = useSharedValue(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT);
 
+  // Initialize sheet height
   useEffect(() => {
     sheetHeight.value = withSpring(BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT, {
       damping: 15,
@@ -187,7 +180,7 @@ export default function RideBookingScreen() {
   }, []);
 
   // ============================================
-  // GET CURRENT LOCATION AND SET AS PICKUP
+  // GET CURRENT LOCATION
   // ============================================
   const getCurrentLocation = useCallback(async () => {
     try {
@@ -228,7 +221,6 @@ export default function RideBookingScreen() {
         }
       } catch (geoError) {
         console.error('Reverse geocoding error:', geoError);
-        // Still set coordinates even if reverse geocoding fails
         setSourceCoords({
           latitude: region.latitude,
           longitude: region.longitude,
@@ -240,10 +232,6 @@ export default function RideBookingScreen() {
       }
     } catch (error) {
       console.error('Location error:', error);
-      Alert.alert(
-        '📍 Location Error',
-        'Could not get your current location. Please check your GPS settings and try again.'
-      );
     }
   }, []);
 
@@ -255,29 +243,26 @@ export default function RideBookingScreen() {
   );
 
   // ============================================
-  // FETCH ROUTE OPTIONS
+  // FETCH ROUTE
   // ============================================
-  const fetchRouteOptions = useCallback(async () => {
+  const fetchRoute = useCallback(async () => {
     if (!sourceCoords || !destinationCoords) return;
     
-    setIsLoadingRoute(true);
     try {
-      const routes = await getRouteOptions(
+      const route = await getRoute(
         sourceCoords.latitude,
         sourceCoords.longitude,
         destinationCoords.latitude,
         destinationCoords.longitude
       );
       
-      if (routes.length > 0) {
-        setRouteOptions(routes);
-        setSelectedRoute(0);
-        setShowRouteOptions(true);
+      if (route && route.points.length > 0) {
+        setRoutePoints(route.points);
         
         // Fit map to show the route
-        if (mapRef.current && routes[0].points.length > 0) {
-          const first = routes[0].points[0];
-          const last = routes[0].points[routes[0].points.length - 1];
+        if (mapRef.current) {
+          const first = route.points[0];
+          const last = route.points[route.points.length - 1];
           mapRef.current.fitToCoordinates(
             [first, last],
             { edgePadding: { top: 80, right: 80, bottom: 180, left: 80 }, animated: true }
@@ -285,13 +270,20 @@ export default function RideBookingScreen() {
         }
       }
     } catch (error) {
-      console.error('Route options error:', error);
-    } finally {
-      setIsLoadingRoute(false);
+      console.error('Route error:', error);
     }
   }, [sourceCoords, destinationCoords]);
 
-  // Handle source text change with debounce
+  // Fetch route when both coordinates are set
+  useEffect(() => {
+    if (sourceCoords && destinationCoords) {
+      fetchRoute();
+    }
+  }, [sourceCoords, destinationCoords, fetchRoute]);
+
+  // ============================================
+  // HANDLE SOURCE CHANGE
+  // ============================================
   const handleSourceChange = (text) => {
     setSource(text);
     setShowSourceSuggestions(true);
@@ -307,7 +299,9 @@ export default function RideBookingScreen() {
     }, 300);
   };
 
-  // Handle destination text change with debounce
+  // ============================================
+  // HANDLE DESTINATION CHANGE
+  // ============================================
   const handleDestChange = (text) => {
     setDestination(text);
     setShowDestSuggestions(true);
@@ -323,7 +317,9 @@ export default function RideBookingScreen() {
     }, 300);
   };
 
-  // Select a suggestion for source
+  // ============================================
+  // SELECT SOURCE SUGGESTION
+  // ============================================
   const selectSourceSuggestion = async (suggestion) => {
     setSource(suggestion.description);
     setShowSourceSuggestions(false);
@@ -346,7 +342,9 @@ export default function RideBookingScreen() {
     }
   };
 
-  // Select a suggestion for destination
+  // ============================================
+  // SELECT DESTINATION SUGGESTION
+  // ============================================
   const selectDestSuggestion = async (suggestion) => {
     setDestination(suggestion.description);
     setShowDestSuggestions(false);
@@ -358,16 +356,48 @@ export default function RideBookingScreen() {
         latitude: details.latitude,
         longitude: details.longitude,
       });
-      
-      // Fetch route options after destination is set
-      setTimeout(() => {
-        if (sourceCoords) {
-          fetchRouteOptions();
-        }
-      }, 500);
     }
   };
 
+  // ============================================
+  // HANDLE MAP PRESS - Manual Pin Placement
+  // ============================================
+  const handleMapPress = useCallback(async (e) => {
+    const { coordinate } = e.nativeEvent;
+    
+    // Reverse geocode to get address
+    try {
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinate.latitude},${coordinate.longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(geoUrl);
+      const data = await response.json();
+      
+      if (data.results && data.results.length > 0) {
+        const address = data.results[0].formatted_address;
+        
+        // If source is empty or we want to set pickup
+        if (!sourceCoords || sourceCoords.latitude === currentLocation?.latitude) {
+          setSource(address);
+          setSourceCoords({
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+          });
+        } else {
+          // Set as destination
+          setDestination(address);
+          setDestinationCoords({
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Reverse geocoding error:', error);
+    }
+  }, [sourceCoords, currentLocation]);
+
+  // ============================================
+  // HANDLE GET FARE
+  // ============================================
   const handleGetFare = async () => {
     if (!source || !destination) {
       Alert.alert('📍 Missing Info', 'Please enter both pickup and drop-off locations.');
@@ -382,6 +412,14 @@ export default function RideBookingScreen() {
     setLoadingFindRide(true);
 
     try {
+      // Get real distance using Google Maps
+      const distanceData = await getRealDistance(
+        sourceCoords.latitude,
+        sourceCoords.longitude,
+        destinationCoords.latitude,
+        destinationCoords.longitude
+      );
+
       navigation.navigate('FareDetails', {
         sourceAddress: source,
         destinationAddress: destination,
@@ -389,6 +427,10 @@ export default function RideBookingScreen() {
         sourceLon: sourceCoords.longitude,
         destinationLat: destinationCoords.latitude,
         destinationLon: destinationCoords.longitude,
+        distance: distanceData.distance,
+        duration: distanceData.duration,
+        distanceText: distanceData.distanceText,
+        durationText: distanceData.durationText,
       });
     } catch (error) {
       console.error('Error in handleGetFare:', error);
@@ -398,9 +440,13 @@ export default function RideBookingScreen() {
     }
   };
 
+  // ============================================
+  // PAN GESTURE FOR BOTTOM SHEET
+  // ============================================
   const panGesture = Gesture.Pan()
     .onStart(() => {
       startSheetHeight.value = sheetHeight.value;
+      setIsDragging(true);
     })
     .onUpdate((event) => {
       let newHeight = startSheetHeight.value - event.translationY;
@@ -411,20 +457,38 @@ export default function RideBookingScreen() {
       sheetHeight.value = newHeight;
     })
     .onEnd((event) => {
+      setIsDragging(false);
       const velocity = event.velocityY;
       let targetHeight;
+      
       if (velocity < -500) {
         targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+        setShowFullSheet(true);
       } else if (velocity > 500) {
         targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+        setShowFullSheet(false);
       } else if (sheetHeight.value > (BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_MIN_HEIGHT + 2 * BOTTOM_SHEET_DRAG_AREA_HEIGHT) / 2) {
         targetHeight = BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+        setShowFullSheet(true);
       } else {
         targetHeight = BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+        setShowFullSheet(false);
       }
       sheetHeight.value = withSpring(targetHeight, { damping: 15, stiffness: 100 });
     });
 
+  // Toggle sheet expansion
+  const toggleSheet = useCallback(() => {
+    const targetHeight = showFullSheet 
+      ? BOTTOM_SHEET_MIN_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT
+      : BOTTOM_SHEET_MAX_HEIGHT + BOTTOM_SHEET_DRAG_AREA_HEIGHT;
+    sheetHeight.value = withSpring(targetHeight, { damping: 15, stiffness: 100 });
+    setShowFullSheet(!showFullSheet);
+  }, [showFullSheet]);
+
+  // ============================================
+  // ANIMATED STYLES
+  // ============================================
   const animatedBottomSheetStyle = useAnimatedStyle(() => ({
     height: sheetHeight.value,
   }));
@@ -445,23 +509,55 @@ export default function RideBookingScreen() {
     };
   });
 
-  // Render suggestions list
+  // ============================================
+  // RENDER SUGGESTIONS
+  // ============================================
   const renderSuggestions = (suggestions, onSelect, show) => {
     if (!show || suggestions.length === 0) return null;
+    
+    // Add "Current Location" option for source suggestions
+    const enhancedSuggestions = [...suggestions];
+    if (currentLocation) {
+      enhancedSuggestions.unshift({
+        id: 'current_location',
+        description: 'Current Location',
+        main_text: '📍 Current Location',
+        secondary_text: 'Use your current location',
+        isCurrentLocation: true,
+      });
+    }
+    
     return (
       <View style={styles.suggestionsContainer}>
         <FlatList
-          data={suggestions}
+          data={enhancedSuggestions}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.suggestionItem}
-              onPress={() => onSelect(item)}
+              onPress={() => {
+                if (item.isCurrentLocation) {
+                  // Use current location
+                  onSelect({
+                    description: item.description,
+                    id: item.id,
+                    isCurrentLocation: true,
+                  });
+                } else {
+                  onSelect(item);
+                }
+              }}
             >
-              <Ionicons name="location-outline" size={18} color={COLORS.primary} />
+              <Ionicons 
+                name={item.isCurrentLocation ? 'locate' : 'location-outline'} 
+                size={18} 
+                color={item.isCurrentLocation ? '#22c55e' : COLORS.primary} 
+              />
               <View style={styles.suggestionTextContainer}>
-                <Text style={styles.suggestionMain}>{item.main_text}</Text>
+                <Text style={[styles.suggestionMain, item.isCurrentLocation && { color: '#22c55e' }]}>
+                  {item.main_text}
+                </Text>
                 {item.secondary_text ? (
                   <Text style={styles.suggestionSecondary}>{item.secondary_text}</Text>
                 ) : null}
@@ -474,83 +570,15 @@ export default function RideBookingScreen() {
   };
 
   // ============================================
-  // GET CURRENT LOCATION BUTTON
-  // ============================================
-  const handleUseCurrentLocation = async () => {
-    await getCurrentLocation();
-  };
-
-  // ============================================
-  // MAP TYPE TOGGLE
-  // ============================================
-  const toggleMapType = () => {
-    const currentIndex = MAP_TYPES.findIndex(t => t.id === mapType);
-    const nextIndex = (currentIndex + 1) % MAP_TYPES.length;
-    setMapType(MAP_TYPES[nextIndex].id);
-  };
-
-  // ============================================
-  // RENDER ROUTE OPTIONS
-  // ============================================
-  const renderRouteOptions = () => {
-    if (!showRouteOptions || routeOptions.length === 0) return null;
-    
-    return (
-      <View style={styles.routeOptionsContainer}>
-        <Text style={styles.routeOptionsTitle}>🚗 Route Options</Text>
-        <FlatList
-          horizontal
-          data={routeOptions}
-          keyExtractor={(item) => item.id.toString()}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={[
-                styles.routeOptionCard,
-                selectedRoute === index && styles.routeOptionCardActive,
-              ]}
-              onPress={() => {
-                setSelectedRoute(index);
-                if (mapRef.current && item.points.length > 0) {
-                  const first = item.points[0];
-                  const last = item.points[item.points.length - 1];
-                  mapRef.current.fitToCoordinates(
-                    [first, last],
-                    { edgePadding: { top: 80, right: 80, bottom: 180, left: 80 }, animated: true }
-                  );
-                }
-              }}
-            >
-              <Text style={[
-                styles.routeOptionLabel,
-                selectedRoute === index && styles.routeOptionLabelActive,
-              ]}>
-                {item.summary || `Route ${index + 1}`}
-              </Text>
-              <Text style={[
-                styles.routeOptionDetail,
-                selectedRoute === index && styles.routeOptionDetailActive,
-              ]}>
-                {item.distance} • {item.duration}
-              </Text>
-              {selectedRoute === index && (
-                <View style={styles.routeOptionCheck}>
-                  <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
-                </View>
-              )}
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-    );
-  };
-
-  // ============================================
   // RENDER MAP CONTROLS
   // ============================================
   const renderMapControls = () => (
     <View style={styles.mapControlsContainer}>
-      <TouchableOpacity style={styles.mapControlBtn} onPress={toggleMapType}>
+      <TouchableOpacity style={styles.mapControlBtn} onPress={() => {
+        const currentIndex = MAP_TYPES.findIndex(t => t.id === mapType);
+        const nextIndex = (currentIndex + 1) % MAP_TYPES.length;
+        setMapType(MAP_TYPES[nextIndex].id);
+      }}>
         <Ionicons name="layers-outline" size={20} color={COLORS.text} />
         <Text style={styles.mapControlLabel}>{mapType.charAt(0).toUpperCase() + mapType.slice(1)}</Text>
       </TouchableOpacity>
@@ -573,6 +601,9 @@ export default function RideBookingScreen() {
     </View>
   );
 
+  // ============================================
+  // MAIN RENDER
+  // ============================================
   return (
     <KeyboardAvoidingView
       style={GLOBAL_STYLES.container}
@@ -595,15 +626,13 @@ export default function RideBookingScreen() {
           loadingEnabled
           loadingIndicatorColor={COLORS.primary}
           loadingBackgroundColor={COLORS.background}
-          onMapReady={() => {
-            console.log('🗺️ Map is ready!');
-            setMapReady(true);
-          }}
+          onMapReady={() => setMapReady(true)}
           googleMapsApiKey={GOOGLE_MAPS_API_KEY}
           showsTraffic={true}
           showsCompass={true}
           showsScale={true}
           showsIndoors={true}
+          onPress={handleMapPress}
         >
           {currentLocation && (
             <Marker
@@ -620,6 +649,23 @@ export default function RideBookingScreen() {
               coordinate={sourceCoords}
               title="Pickup"
               pinColor="#4CAF50"
+              draggable={true}
+              onDragEnd={(e) => {
+                const { coordinate } = e.nativeEvent;
+                setSourceCoords({
+                  latitude: coordinate.latitude,
+                  longitude: coordinate.longitude,
+                });
+                // Reverse geocode to get address
+                fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinate.latitude},${coordinate.longitude}&key=${GOOGLE_MAPS_API_KEY}`)
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.results && data.results.length > 0) {
+                      setSource(data.results[0].formatted_address);
+                    }
+                  })
+                  .catch(console.error);
+              }}
             />
           )}
           {destinationCoords && (
@@ -627,13 +673,29 @@ export default function RideBookingScreen() {
               coordinate={destinationCoords}
               title="Drop-off"
               pinColor="#f44336"
+              draggable={true}
+              onDragEnd={(e) => {
+                const { coordinate } = e.nativeEvent;
+                setDestinationCoords({
+                  latitude: coordinate.latitude,
+                  longitude: coordinate.longitude,
+                });
+                fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${coordinate.latitude},${coordinate.longitude}&key=${GOOGLE_MAPS_API_KEY}`)
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.results && data.results.length > 0) {
+                      setDestination(data.results[0].formatted_address);
+                    }
+                  })
+                  .catch(console.error);
+              }}
             />
           )}
           
-          {/* Show selected route with animated gradient effect */}
-          {routeOptions.length > 0 && routeOptions[selectedRoute]?.points.length > 0 && (
+          {/* Show route on map */}
+          {routePoints.length > 0 && (
             <Polyline
-              coordinates={routeOptions[selectedRoute].points}
+              coordinates={routePoints}
               strokeColor={COLORS.primary}
               strokeWidth={5}
               lineCap="round"
@@ -645,22 +707,28 @@ export default function RideBookingScreen() {
 
         {/* Map Controls */}
         {renderMapControls()}
-
-        {/* Route Options */}
-        {renderRouteOptions()}
       </Animated.View>
 
       <Animated.View style={[styles.bottomSheet, animatedBottomSheetStyle]}>
         <GestureDetector gesture={panGesture}>
-          <View style={styles.dragHandleContainer}>
+          <TouchableOpacity 
+            style={styles.dragHandleContainer} 
+            onPress={toggleSheet}
+            activeOpacity={0.7}
+          >
             <View style={styles.dragHandleBar} />
             <Animated.View style={animatedChevronRotation}>
               <Ionicons name="chevron-up" size={20} color={COLORS.textMuted} />
             </Animated.View>
-          </View>
+          </TouchableOpacity>
         </GestureDetector>
 
-        <View style={styles.bottomSheetContent}>
+        <ScrollView 
+          style={styles.bottomSheetScrollView}
+          contentContainerStyle={styles.bottomSheetContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.headerSection}>
             <View style={styles.logoContainer}>
               <Image
@@ -684,18 +752,14 @@ export default function RideBookingScreen() {
                 placeholderTextColor={COLORS.textMuted}
                 value={source}
                 onChangeText={handleSourceChange}
-                onFocus={() => {
-                  setShowSourceSuggestions(true);
-                }}
+                onFocus={() => setShowSourceSuggestions(true)}
                 onBlur={() => {
-                  setTimeout(() => {
-                    setShowSourceSuggestions(false);
-                  }, 200);
+                  setTimeout(() => setShowSourceSuggestions(false), 200);
                 }}
               />
               <TouchableOpacity 
                 style={styles.currentLocationBtn}
-                onPress={handleUseCurrentLocation}
+                onPress={getCurrentLocation}
               >
                 <Ionicons name="locate" size={20} color={COLORS.primary} />
               </TouchableOpacity>
@@ -718,13 +782,9 @@ export default function RideBookingScreen() {
                 placeholderTextColor={COLORS.textMuted}
                 value={destination}
                 onChangeText={handleDestChange}
-                onFocus={() => {
-                  setShowDestSuggestions(true);
-                }}
+                onFocus={() => setShowDestSuggestions(true)}
                 onBlur={() => {
-                  setTimeout(() => {
-                    setShowDestSuggestions(false);
-                  }, 200);
+                  setTimeout(() => setShowDestSuggestions(false), 200);
                 }}
               />
             </View>
@@ -732,12 +792,12 @@ export default function RideBookingScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.findRideButton, (loadingFindRide || loadingGeocode || isLoadingRoute) && { opacity: 0.7 }]}
+            style={[styles.findRideButton, (loadingFindRide || loadingGeocode) && { opacity: 0.7 }]}
             onPress={handleGetFare}
-            disabled={loadingFindRide || loadingGeocode || isLoadingRoute}
+            disabled={loadingFindRide || loadingGeocode}
             activeOpacity={0.8}
           >
-            {(loadingFindRide || loadingGeocode || isLoadingRoute) ? (
+            {loadingFindRide ? (
               <ActivityIndicator color={COLORS.background} size="small" />
             ) : (
               <>
@@ -761,7 +821,7 @@ export default function RideBookingScreen() {
               <Text style={styles.quickActionText}>Corporate</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>
   );
@@ -791,11 +851,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
+  bottomSheetScrollView: {
+    flex: 1,
+  },
   bottomSheetContent: {
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 30,
-    flex: 1,
   },
   dragHandleContainer: {
     alignSelf: 'center',
@@ -805,6 +867,7 @@ const styles = StyleSheet.create({
     height: BOTTOM_SHEET_DRAG_AREA_HEIGHT,
     flexDirection: 'row',
     gap: 12,
+    paddingVertical: 4,
   },
   dragHandleBar: {
     width: 60,
@@ -967,57 +1030,5 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 9,
     marginTop: 2,
-  },
-  
-  // Route Options
-  routeOptionsContainer: {
-    position: 'absolute',
-    bottom: 160,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 16,
-    zIndex: 5,
-  },
-  routeOptionsTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontFamily: FONTS.bold,
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  routeOptionCard: {
-    backgroundColor: 'rgba(17, 17, 17, 0.9)',
-    borderWidth: 1,
-    borderColor: COLORS.borderColor,
-    borderRadius: 10,
-    padding: 12,
-    marginRight: 8,
-    minWidth: 140,
-    maxWidth: 180,
-  },
-  routeOptionCardActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: 'rgba(250, 204, 21, 0.15)',
-  },
-  routeOptionLabel: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontFamily: FONTS.semibold,
-  },
-  routeOptionLabelActive: {
-    color: COLORS.text,
-  },
-  routeOptionDetail: {
-    color: COLORS.textMuted,
-    fontSize: 11,
-    marginTop: 2,
-  },
-  routeOptionDetailActive: {
-    color: COLORS.primary,
-  },
-  routeOptionCheck: {
-    position: 'absolute',
-    top: 6,
-    right: 8,
   },
 });

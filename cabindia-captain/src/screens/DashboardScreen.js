@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Switch, 
-  ScrollView, ActivityIndicator, Alert, AppState, RefreshControl
+  ScrollView, ActivityIndicator, Alert, AppState, RefreshControl,
+  Modal, Dimensions
 } from 'react-native';
 import { AuthContext } from '../../App';
 import { COLORS, SIZES, FONTS } from '../styles/theme';
@@ -14,8 +15,10 @@ import Constants from 'expo-constants';
 
 import { SOCKET_URL } from '../config';
 
+const { width, height } = Dimensions.get('window');
+
 export default function DashboardScreen({ navigation }) {
-  const { userData } = useContext(AuthContext);
+  const { userData, logout } = useContext(AuthContext);
   const [isOnline, setIsOnline] = useState(false);
   const [location, setLocation] = useState(null);
   const [stats, setStats] = useState({
@@ -30,12 +33,16 @@ export default function DashboardScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [currentRide, setCurrentRide] = useState(null);
   const [rideRequests, setRideRequests] = useState([]);
+  const [registrationStatus, setRegistrationStatus] = useState(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const socketRef = useRef(null);
   const locationInterval = useRef(null);
   const appState = useRef(AppState.currentState);
+  const [isMounted, setIsMounted] = useState(true);
 
   // Define handlers with useCallback to prevent recreation
   const handleNewRideRequest = useCallback((data) => {
+    if (!isMounted) return;
     console.log('New ride request:', data);
     setRideRequests(prev => [{
       rideId: data.rideId || data.id || Date.now(),
@@ -55,22 +62,25 @@ export default function DashboardScreen({ navigation }) {
       ],
       { cancelable: true }
     );
-  }, []);
+  }, [isMounted]);
 
   const handleRideAssigned = useCallback((data) => {
+    if (!isMounted) return;
     Alert.alert(
       '🚗 Ride Assigned!',
       'You have been assigned a ride. Check your map for details.',
       [{ text: 'OK', onPress: () => navigation.navigate('Map', { rideId: data.rideId }) }]
     );
-  }, [navigation]);
+  }, [navigation, isMounted]);
 
   const handleRideCancelled = useCallback(() => {
+    if (!isMounted) return;
     Alert.alert('Ride Cancelled', 'The ride has been cancelled by the customer.');
     setCurrentRide(null);
-  }, []);
+  }, [isMounted]);
 
   const requestLocationPermission = useCallback(async () => {
+    if (!isMounted) return;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
@@ -95,18 +105,40 @@ export default function DashboardScreen({ navigation }) {
     } catch (error) {
       console.error('Location error:', error);
     }
-  }, [isOnline]);
+  }, [isOnline, isMounted]);
 
   const handleAppStateChange = useCallback((nextAppState) => {
+    if (!isMounted) return;
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
       requestLocationPermission();
       fetchStats();
     }
     appState.current = nextAppState;
-  }, [requestLocationPermission]);
+  }, [requestLocationPermission, isMounted]);
+
+  // Check registration status
+  const checkRegistrationStatus = useCallback(async () => {
+    try {
+      const response = await api.get('/api/drivers/status');
+      if (response.data.success) {
+        const status = response.data.status;
+        setRegistrationStatus(status);
+        
+        if (status === 'pending_verification') {
+          setShowRegistrationModal(true);
+        } else if (status === 'incomplete') {
+          setShowRegistrationModal(true);
+        }
+      }
+    } catch (error) {
+      console.error('Registration status check error:', error);
+    }
+  }, []);
 
   // Initialize socket connection
   useEffect(() => {
+    setIsMounted(true);
+    
     const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -132,25 +164,23 @@ export default function DashboardScreen({ navigation }) {
       setRideRequests(prev => prev.filter(r => r.rideId !== data.rideId));
     });
 
-    return () => {
-      socket.disconnect();
-      if (locationInterval.current) {
-        clearInterval(locationInterval.current);
-      }
-    };
-  }, [handleNewRideRequest, handleRideAssigned, handleRideCancelled]);
-
-  // Request location permission and start tracking
-  useEffect(() => {
     requestLocationPermission();
     fetchStats();
+    checkRegistrationStatus();
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     
     return () => {
+      setIsMounted(false);
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      if (locationInterval.current) {
+        clearInterval(locationInterval.current);
+      }
       subscription.remove();
     };
-  }, [handleAppStateChange, requestLocationPermission]);
+  }, [handleNewRideRequest, handleRideAssigned, handleRideCancelled, handleAppStateChange, requestLocationPermission, checkRegistrationStatus]);
 
   const startLocationUpdates = () => {
     if (locationInterval.current) {
@@ -158,6 +188,7 @@ export default function DashboardScreen({ navigation }) {
     }
     
     locationInterval.current = setInterval(async () => {
+      if (!isMounted) return;
       try {
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
@@ -181,9 +212,9 @@ export default function DashboardScreen({ navigation }) {
   };
 
   const fetchStats = async () => {
+    if (!isMounted) return;
     try {
       setLoading(true);
-      // FIX: Add /api/ prefix
       const response = await api.get('/api/drivers/stats');
       console.log('Dashboard stats response:', response.data);
       if (response.data.success) {
@@ -230,7 +261,6 @@ export default function DashboardScreen({ navigation }) {
         setLocation(currentLocation);
       }
 
-      // FIX: Add /api/ prefix
       const response = await api.post('/api/drivers/status', {
         online: newStatus,
         lat: currentLocation?.latitude || null,
@@ -281,7 +311,6 @@ export default function DashboardScreen({ navigation }) {
 
   const acceptRide = async (rideId) => {
     try {
-      // FIX: Add /api/ prefix
       const response = await api.post(`/api/rides/${rideId}/accept`);
       if (response.data.success) {
         setCurrentRide({ rideId, status: 'accepted' });
@@ -301,7 +330,13 @@ export default function DashboardScreen({ navigation }) {
     setRideRequests(prev => prev.filter(r => r.rideId !== rideId));
   };
 
-  if (loading) {
+  // Handle continue registration
+  const handleContinueRegistration = () => {
+    setShowRegistrationModal(false);
+    navigation.navigate('Register');
+  };
+
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -465,6 +500,47 @@ export default function DashboardScreen({ navigation }) {
       <View style={styles.versionInfo}>
         <Text style={styles.versionText}>CabIndia Captain v1.0.0</Text>
       </View>
+
+      {/* Registration Status Modal */}
+      <Modal
+        visible={showRegistrationModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowRegistrationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Complete Your Registration</Text>
+            </View>
+            <View style={styles.modalBody}>
+              <Ionicons name="alert-circle" size={48} color={COLORS.primary} style={styles.modalIcon} />
+              <Text style={styles.modalText}>
+                {registrationStatus === 'pending_verification' 
+                  ? 'Your application is being reviewed by our team. We will notify you within 48 hours.'
+                  : 'Your registration is incomplete. Please complete all steps to start earning.'}
+              </Text>
+              <Text style={styles.modalSubText}>
+                You cannot accept rides until your registration is complete.
+              </Text>
+            </View>
+            <View style={styles.modalFooter}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setShowRegistrationModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSaveButton]} 
+                onPress={handleContinueRegistration}
+              >
+                <Text style={styles.modalSaveText}>Continue</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -732,5 +808,81 @@ const styles = StyleSheet.create({
   versionText: {
     color: COLORS.textMuted,
     fontSize: SIZES.small,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.cardBackground,
+    borderRadius: SIZES.radius * 2,
+    padding: SIZES.padding * 2,
+    width: width * 0.85,
+    maxWidth: 400,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    paddingBottom: SIZES.padding,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderColor,
+  },
+  modalTitle: {
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+  },
+  modalBody: {
+    paddingVertical: SIZES.padding * 1.5,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    marginBottom: SIZES.margin,
+  },
+  modalText: {
+    color: COLORS.text,
+    fontSize: SIZES.medium,
+    textAlign: 'center',
+    fontFamily: FONTS.semibold,
+    marginBottom: SIZES.margin,
+  },
+  modalSubText: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.small,
+    textAlign: 'center',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: SIZES.margin,
+    paddingTop: SIZES.padding,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderColor,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: SIZES.padding * 0.8,
+    borderRadius: SIZES.radius,
+    alignItems: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: COLORS.inputBackground,
+    borderWidth: 1,
+    borderColor: COLORS.borderColor,
+  },
+  modalCancelText: {
+    color: COLORS.text,
+    fontFamily: FONTS.semibold,
+    fontSize: SIZES.medium,
+  },
+  modalSaveButton: {
+    backgroundColor: COLORS.primary,
+  },
+  modalSaveText: {
+    color: COLORS.background,
+    fontFamily: FONTS.bold,
+    fontSize: SIZES.medium,
   },
 });
