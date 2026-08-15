@@ -113,12 +113,11 @@ export default function RegisterScreen() {
     ifsc: '',
     bankName: '',
 
-    // Step 4: Vehicle
+    // Step 4: Vehicle (Removed chassisNumber, engineNumber)
     vehicleType: 'Sedan',
     vehicleModel: '',
     vehicleNumber: '',
-    rcNumber: '',
-    chassisNumber: '',
+    rcNumber: '', // RC Number only - kept as one document
     dlNumber: '',
     pollutionValid: 'Yes',
     insuranceValid: 'Yes',
@@ -130,6 +129,7 @@ export default function RegisterScreen() {
     panCard: null,
     drivingLicense: null,
     vehicleRC: null,
+    vehiclePhoto: null, // NEW: Compulsory vehicle photo
     insurance: null,
     pollution: null,
     bankPassbook: null,
@@ -307,10 +307,6 @@ export default function RegisterScreen() {
           Alert.alert('📄 Missing RC', 'Please enter RC number.');
           return false;
         }
-        if (!form.chassisNumber.trim()) {
-          Alert.alert('🔢 Missing Chassis', 'Please enter chassis number.');
-          return false;
-        }
         if (!form.dlNumber.trim()) {
           Alert.alert('🪪 Missing License', 'Please enter driving license number.');
           return false;
@@ -318,7 +314,8 @@ export default function RegisterScreen() {
         return true;
 
       case 5:
-        const requiredDocs = ['selfie', 'aadhaarFront', 'panCard', 'drivingLicense', 'vehicleRC', 'bankPassbook'];
+        // Updated required documents - vehiclePhoto is now compulsory
+        const requiredDocs = ['selfie', 'aadhaarFront', 'panCard', 'drivingLicense', 'vehicleRC', 'vehiclePhoto', 'bankPassbook'];
         const missing = requiredDocs.filter(doc => !form[doc]);
         if (missing.length > 0) {
           Alert.alert(
@@ -423,6 +420,7 @@ export default function RegisterScreen() {
         licensePlate: form.vehicleNumber,
         vehicleType: form.vehicleType,
         licenseNumber: form.dlNumber,
+        rcNumber: form.rcNumber,
         experience: '0',
         formData: form,
       }, {
@@ -876,17 +874,6 @@ export default function RegisterScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Chassis Number <Text style={styles.required}>*</Text></Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Vehicle chassis number"
-          placeholderTextColor={COLORS.textMuted}
-          value={form.chassisNumber}
-          onChangeText={(text) => updateForm('chassisNumber', text)}
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
         <Text style={styles.label}>Driving License Number <Text style={styles.required}>*</Text></Text>
         <TextInput
           style={styles.input}
@@ -957,6 +944,7 @@ export default function RegisterScreen() {
           { key: 'panCard', label: 'PAN Card', icon: 'card', required: true },
           { key: 'drivingLicense', label: 'Driving License', icon: 'car', required: true },
           { key: 'vehicleRC', label: 'Vehicle RC', icon: 'document', required: true },
+          { key: 'vehiclePhoto', label: 'Vehicle Photo', icon: 'camera', required: true }, // NEW: Compulsory
           { key: 'insurance', label: 'Insurance', icon: 'shield', required: false },
           { key: 'pollution', label: 'Pollution Certificate', icon: 'leaf', required: false },
           { key: 'bankPassbook', label: 'Bank Passbook', icon: 'book', required: true },
@@ -988,6 +976,7 @@ export default function RegisterScreen() {
         <Text style={styles.noteText}>
           All documents will be verified by our team within 48 hours.
           Ensure all uploads are legible and not expired.
+          Vehicle photo is mandatory for verification.
         </Text>
       </View>
     </View>

@@ -32,7 +32,6 @@ export default function ProfileScreen({ navigation }) {
     licensePlate: '',
     vehicleColor: '',
     rcNumber: '',
-    chassisNumber: '',
     pollutionValid: true,
     insuranceValid: true,
   });
@@ -474,6 +473,15 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
         </TouchableOpacity>
 
+        {/* Change Password - NEW */}
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ChangePassword')}>
+          <View style={styles.menuIconWrapper}>
+            <Ionicons name="key-outline" size={20} color={COLORS.primary} />
+          </View>
+          <Text style={styles.menuText}>Change Password</Text>
+          <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={styles.menuArrow} />
+        </TouchableOpacity>
+
         <View style={styles.divider} />
 
         {/* Logout */}
@@ -648,17 +656,6 @@ export default function ProfileScreen({ navigation }) {
                   placeholderTextColor={COLORS.textMuted}
                   value={vehicleDetails.rcNumber}
                   onChangeText={(text) => handleVehicleChange('rcNumber', text)}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Chassis Number</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Vehicle chassis number"
-                  placeholderTextColor={COLORS.textMuted}
-                  value={vehicleDetails.chassisNumber}
-                  onChangeText={(text) => handleVehicleChange('chassisNumber', text)}
                 />
               </View>
 

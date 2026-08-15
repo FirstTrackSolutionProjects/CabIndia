@@ -5,6 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "seed": "node init-demo-data.js",
+    "seed:reset": "node reset-demo-data.js",
+    "reset:all": "node reset-all-users.js && npm run seed",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -22,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.22.5",
     "nodemailer": "^9.0.1",
+    "razorpay": "^2.9.2",
     "socket.io": "^4.8.3",
     "zod": "^4.4.3"
   },

@@ -1,4 +1,4 @@
-// cabindia-captain/App.js
+// cabindia-captain/App.js - Updated with all navigation
 import 'react-native-gesture-handler';
 import React, { useState, useEffect, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
@@ -11,6 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import Ionicons from react-native-vector-icons directly
 import { Ionicons } from '@expo/vector-icons';
+
+// Import API for logout
+import api from './src/utils/api';
 
 // Keep splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(err => {
@@ -40,6 +43,20 @@ const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Call logout API to invalidate token on server
+      const token = await AsyncStorage.getItem('userToken');
+      if (token) {
+        try {
+          await api.post('/api/auth/logout', {}, {
+            headers: { 'x-auth-token': token }
+          });
+        } catch (e) {
+          // Ignore API errors during logout
+          console.log('Logout API call failed, continuing with local logout');
+        }
+      }
+      
+      // Clear local state
       setUserToken(null);
       setUserData(null);
       await AsyncStorage.removeItem('userToken');
@@ -47,10 +64,14 @@ const AuthProvider = ({ children }) => {
       console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
+      // Still clear local state even if API fails
+      setUserToken(null);
+      setUserData(null);
+      await AsyncStorage.removeItem('userToken');
+      await AsyncStorage.removeItem('userData');
     }
   };
 
-  // Add updateUser function for profile updates
   const updateUser = async (user) => {
     try {
       setUserData(user);
@@ -97,6 +118,9 @@ const AuthProvider = ({ children }) => {
 // Import Screens
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import RideRequestsScreen from './src/screens/RideRequestsScreen';
 import RideHistoryScreen from './src/screens/RideHistoryScreen';
@@ -117,6 +141,9 @@ const AuthStack = () => (
   >
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
   </Stack.Navigator>
 );
 
@@ -166,7 +193,7 @@ const MainTabs = () => (
   </Tab.Navigator>
 );
 
-// Main Stack with Map
+// Main Stack with Map and Change Password
 const MainStack = () => (
   <Stack.Navigator 
     screenOptions={{ 
@@ -176,6 +203,7 @@ const MainStack = () => (
   >
     <Stack.Screen name="MainTabs" component={MainTabs} />
     <Stack.Screen name="Map" component={MapScreen} />
+    <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
   </Stack.Navigator>
 );
 
