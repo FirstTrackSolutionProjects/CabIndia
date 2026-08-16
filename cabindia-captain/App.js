@@ -1,6 +1,6 @@
-// cabindia-captain/App.js - Updated with all navigation
+// cabindia-captain/App.js - Updated with all navigation and font loading
 import 'react-native-gesture-handler';
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,8 +8,7 @@ import { StatusBar, View, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Import Ionicons from react-native-vector-icons directly
+import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import API for logout
@@ -225,24 +224,31 @@ const RootNavigator = () => {
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
+  // Load fonts
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
+
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulate loading resources
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setAppIsReady(true);
       } catch (e) {
         console.error('App preparation error:', e);
-      } finally {
-        setAppIsReady(true);
-        await SplashScreen.hideAsync().catch(err => {
-          console.error('Hide splash error:', err);
-        });
       }
     }
     prepare();
   }, []);
 
-  if (!appIsReady) {
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded && appIsReady) {
+      await SplashScreen.hideAsync().catch(err => {
+        console.error('Hide splash error:', err);
+      });
+    }
+  }, [fontsLoaded, appIsReady]);
+
+  if (!fontsLoaded || !appIsReady) {
     return (
       <View style={styles.splashContainer}>
         <Image source={require('./assets/splash.png')} style={styles.splashImage} />
@@ -252,7 +258,7 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <NavigationContainer>
           <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
           <RootNavigator />

@@ -4,15 +4,15 @@ import React, { useCallback, useEffect, useState, useContext } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, LogBox, View, Image, StyleSheet } from 'react-native';
+import { StatusBar, View, Image, StyleSheet, LogBox } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import { Ionicons } from '@expo/vector-icons';
+
 import { COLORS, SIZES } from './src/styles/theme';
 import { FONTS } from './src/styles/theme';
-
-// Import Ionicons from react-native-vector-icons directly
-import { Ionicons } from '@expo/vector-icons';
 
 // Ignore warnings
 LogBox.ignoreLogs(['InteractionManager has been deprecated']);
@@ -140,45 +140,30 @@ const MainAppStack = () => (
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
+  // Load fonts
+  const [fontsLoaded] = useFonts({
+    ...Ionicons.font,
+  });
+
   useEffect(() => {
     async function prepare() {
       try {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (e) {
-        console.error('App preparation error:', e);
-      } finally {
+        // Simulate other loading tasks if any
         setAppIsReady(true);
+      } catch (e) {
+        console.warn(e);
       }
     }
     prepare();
   }, []);
 
-  return (
-    <AuthProvider>
-      <RootNavigator appIsReady={appIsReady} />
-    </AuthProvider>
-  );
-}
-
-const RootNavigator = ({ appIsReady }) => {
-  const { userToken, isLoading } = useContext(AuthContext);
-  const [splashHidden, setSplashHidden] = useState(false);
-
-  useEffect(() => {
-    if (appIsReady && !isLoading && !splashHidden) {
-      async function hideSplash() {
-        try {
-          await SplashScreen.hideAsync();
-          setSplashHidden(true);
-        } catch (err) {
-          console.error('Hide splash error:', err);
-        }
-      }
-      hideSplash();
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded && appIsReady) {
+      await SplashScreen.hideAsync();
     }
-  }, [appIsReady, isLoading, splashHidden]);
+  }, [fontsLoaded, appIsReady]);
 
-  if (!appIsReady || isLoading) {
+  if (!fontsLoaded || !appIsReady) {
     return (
       <View style={styles.splashContainer}>
         <Image 
@@ -191,13 +176,49 @@ const RootNavigator = ({ appIsReady }) => {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
-        {userToken ? <MainAppStack /> : <AuthStack />}
-      </NavigationContainer>
-    </GestureHandlerRootView>
+    <AuthProvider>
+      <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <NavigationContainer>
+          <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+          <RootNavigator />
+        </NavigationContainer>
+      </GestureHandlerRootView>
+    </AuthProvider>
   );
+}
+
+// RootNavigator component
+const RootNavigator = () => {
+  const { userToken, isLoading } = useContext(AuthContext);
+  const [splashHidden, setSplashHidden] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && !splashHidden) {
+      async function hideSplash() {
+        try {
+          await SplashScreen.hideAsync();
+          setSplashHidden(true);
+        } catch (err) {
+          console.error('Hide splash error:', err);
+        }
+      }
+      hideSplash();
+    }
+  }, [isLoading, splashHidden]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.splashContainer}>
+        <Image 
+          source={require('./assets/splash.png')} 
+          style={styles.splashImage}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+
+  return userToken ? <MainAppStack /> : <AuthStack />;
 };
 
 const styles = StyleSheet.create({
