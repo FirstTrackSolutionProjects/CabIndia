@@ -8,7 +8,7 @@ import { StatusBar, View, Image, StyleSheet, LogBox } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
+import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS, SIZES } from './src/styles/theme';
@@ -139,22 +139,36 @@ const MainAppStack = () => (
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Load fonts
-  const [fontsLoaded] = useFonts({
-    ...Ionicons.font,
-  });
+  // Load fonts using Font.loadAsync (more reliable than useFonts)
+  useEffect(() => {
+    async function loadFonts() {
+      try {
+        console.log('🔤 Loading fonts...');
+        await Font.loadAsync({
+          ...Ionicons.font,
+        });
+        setFontsLoaded(true);
+        console.log('✅ Fonts loaded successfully');
+      } catch (error) {
+        console.error('❌ Font load error:', error);
+        // CRITICAL: Set fontsLoaded to true even if fonts fail
+        // so app doesn't get stuck on splash screen
+        setFontsLoaded(true);
+      }
+    }
+    loadFonts();
+  }, []);
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulate other loading tasks if any
         await new Promise(resolve => setTimeout(resolve, 500));
         setAppIsReady(true);
         console.log('✅ App preparation complete');
       } catch (e) {
         console.warn('App preparation error:', e);
-        // Even if error, set app ready to show something
         setAppIsReady(true);
       }
     }

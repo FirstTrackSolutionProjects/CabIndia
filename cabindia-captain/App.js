@@ -8,7 +8,7 @@ import { StatusBar, View, Image, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFonts } from 'expo-font';
+import * as Font from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import API for logout
@@ -228,19 +228,27 @@ const RootNavigator = () => {
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Load fonts
-  const [fontsLoaded, fontError] = useFonts({
-    ...Ionicons.font,
-  });
-
-  // Log font loading status
+  // Load fonts using Font.loadAsync (more reliable than useFonts)
   useEffect(() => {
-    console.log('🔤 Fonts loaded:', fontsLoaded);
-    if (fontError) {
-      console.error('❌ Font load error:', fontError);
+    async function loadFonts() {
+      try {
+        console.log('🔤 Loading fonts...');
+        await Font.loadAsync({
+          ...Ionicons.font,
+        });
+        setFontsLoaded(true);
+        console.log('✅ Fonts loaded successfully');
+      } catch (error) {
+        console.error('❌ Font load error:', error);
+        // CRITICAL: Set fontsLoaded to true even if fonts fail
+        // so app doesn't get stuck on splash screen
+        setFontsLoaded(true);
+      }
     }
-  }, [fontsLoaded, fontError]);
+    loadFonts();
+  }, []);
 
   useEffect(() => {
     async function prepare() {
