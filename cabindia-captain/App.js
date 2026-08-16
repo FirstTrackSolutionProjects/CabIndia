@@ -95,6 +95,7 @@ const AuthProvider = ({ children }) => {
         console.log('checkLoginStatus error:', e);
       } finally {
         setIsLoading(false);
+        console.log('✅ AuthProvider - isLoading set to false');
       }
     };
     checkLoginStatus();
@@ -210,7 +211,10 @@ const MainStack = () => (
 const RootNavigator = () => {
   const { userToken, isLoading } = useContext(AuthContext);
 
+  console.log('🔄 RootNavigator - isLoading:', isLoading, 'userToken:', !!userToken);
+
   if (isLoading) {
+    console.log('⏳ RootNavigator - Still loading...');
     return (
       <View style={styles.splashContainer}>
         <Image source={require('./assets/splash.png')} style={styles.splashImage} />
@@ -218,6 +222,7 @@ const RootNavigator = () => {
     );
   }
 
+  console.log('✅ RootNavigator - Rendering navigation');
   return userToken ? <MainStack /> : <AuthStack />;
 };
 
@@ -225,30 +230,49 @@ export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
 
   // Load fonts
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
+
+  // Log font loading status
+  useEffect(() => {
+    console.log('🔤 Fonts loaded:', fontsLoaded);
+    if (fontError) {
+      console.error('❌ Font load error:', fontError);
+    }
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     async function prepare() {
       try {
+        await new Promise(resolve => setTimeout(resolve, 500));
         setAppIsReady(true);
+        console.log('✅ App preparation complete');
       } catch (e) {
         console.error('App preparation error:', e);
+        setAppIsReady(true);
       }
     }
     prepare();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded && appIsReady) {
-      await SplashScreen.hideAsync().catch(err => {
-        console.error('Hide splash error:', err);
-      });
+    try {
+      console.log('📱 onLayoutRootView - fontsLoaded:', fontsLoaded, 'appIsReady:', appIsReady);
+      if (fontsLoaded && appIsReady) {
+        console.log('✅ Hiding splash screen...');
+        await SplashScreen.hideAsync().catch(err => {
+          console.error('Hide splash error:', err);
+        });
+        console.log('✅ Splash screen hidden');
+      }
+    } catch (error) {
+      console.error('❌ SplashScreen hide error:', error);
     }
   }, [fontsLoaded, appIsReady]);
 
   if (!fontsLoaded || !appIsReady) {
+    console.log('⏳ Showing splash screen (loading...)');
     return (
       <View style={styles.splashContainer}>
         <Image source={require('./assets/splash.png')} style={styles.splashImage} />
@@ -256,6 +280,7 @@ export default function App() {
     );
   }
 
+  console.log('🚀 App is ready! Rendering main app...');
   return (
     <AuthProvider>
       <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>

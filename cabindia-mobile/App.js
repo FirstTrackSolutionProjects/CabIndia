@@ -149,21 +149,38 @@ export default function App() {
     async function prepare() {
       try {
         // Simulate other loading tasks if any
+        await new Promise(resolve => setTimeout(resolve, 500));
         setAppIsReady(true);
+        console.log('✅ App preparation complete');
       } catch (e) {
-        console.warn(e);
+        console.warn('App preparation error:', e);
+        // Even if error, set app ready to show something
+        setAppIsReady(true);
       }
     }
     prepare();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded && appIsReady) {
-      await SplashScreen.hideAsync();
+    try {
+      console.log('📱 onLayoutRootView - fontsLoaded:', fontsLoaded, 'appIsReady:', appIsReady);
+      if (fontsLoaded && appIsReady) {
+        console.log('✅ Hiding splash screen...');
+        await SplashScreen.hideAsync();
+        console.log('✅ Splash screen hidden');
+      }
+    } catch (error) {
+      console.error('❌ SplashScreen hide error:', error);
     }
   }, [fontsLoaded, appIsReady]);
 
+  // Debug: Log state changes
+  useEffect(() => {
+    console.log('📊 State - fontsLoaded:', fontsLoaded, 'appIsReady:', appIsReady);
+  }, [fontsLoaded, appIsReady]);
+
   if (!fontsLoaded || !appIsReady) {
+    console.log('⏳ Showing splash screen (loading...)');
     return (
       <View style={styles.splashContainer}>
         <Image 
@@ -175,6 +192,7 @@ export default function App() {
     );
   }
 
+  console.log('🚀 App is ready! Rendering main app...');
   return (
     <AuthProvider>
       <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
@@ -187,26 +205,31 @@ export default function App() {
   );
 }
 
-// RootNavigator component
+// RootNavigator component - NO PROPS ACCEPTED
 const RootNavigator = () => {
   const { userToken, isLoading } = useContext(AuthContext);
   const [splashHidden, setSplashHidden] = useState(false);
 
   useEffect(() => {
+    console.log('🔄 RootNavigator - isLoading:', isLoading, 'userToken:', !!userToken);
     if (!isLoading && !splashHidden) {
       async function hideSplash() {
         try {
+          console.log('🔄 RootNavigator hiding splash...');
           await SplashScreen.hideAsync();
           setSplashHidden(true);
+          console.log('✅ RootNavigator splash hidden');
         } catch (err) {
-          console.error('Hide splash error:', err);
+          console.error('❌ RootNavigator hide splash error:', err);
         }
       }
       hideSplash();
     }
   }, [isLoading, splashHidden]);
 
+  // Show splash while loading
   if (isLoading) {
+    console.log('⏳ RootNavigator - Still loading...');
     return (
       <View style={styles.splashContainer}>
         <Image 
@@ -218,6 +241,7 @@ const RootNavigator = () => {
     );
   }
 
+  console.log('✅ RootNavigator - Rendering navigation');
   return userToken ? <MainAppStack /> : <AuthStack />;
 };
 
