@@ -1,40 +1,22 @@
+// src/Components/Header.jsx
 import React, { useState, useRef } from "react";
-import { Link } from "react-router-dom";
-import { ChevronDown, Car, UserCircle } from "lucide-react";
-import Menu from "./Menu";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronDown, Car, UserCircle, Menu, X } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const navItems = [
-  { name: "Home",       link: "/" },
-  { name: "Blog",       link: "/blog" },
-  
-  { name: "About Us",   link: "/about" },
+  { name: "Home", link: "/" },
+  { name: "About Us", link: "/about" },
+  { name: "Services", link: "/service" },
+  { name: "Blog", link: "/blog" },
   { name: "Contact Us", link: "/contact" },
-  { name: "Sign In",      link: "#",   dropdown: true },
-  {
-    name: "Chat",
-    link: "/chat",
-  },
-];
-
-const riderOptions = [
-  {
-    label: "Rider Login",
-    sub: "Drive & earn with CabIndia",
-    link: "/rider",
-    icon: Car,
-  },
-  {
-    label: "Customer Login",
-    sub: "Book your next ride",
-    link: "/login",
-    icon: UserCircle,
-  },
 ];
 
 // ── Rider Dropdown ──
 const RiderDropdown = ({ active }) => {
   const [open, setOpen] = useState(false);
   const leaveTimer = useRef(null);
+  const navigate = useNavigate();
 
   const handleEnter = () => {
     clearTimeout(leaveTimer.current);
@@ -54,13 +36,14 @@ const RiderDropdown = ({ active }) => {
       {/* trigger */}
       <button
         className={[
-          "flex items-center gap-1 transition-colors duration-200",
+          "flex items-center gap-1 transition-colors duration-200 font-medium",
           open || active === "Rider"
-            ? "text-yellow-400 font-bold"
-            : "hover:text-yellow-400",
+            ? "text-yellow-400"
+            : "text-white hover:text-yellow-400",
         ].join(" ")}
+        onClick={() => navigate("/rider")}
       >
-        Rider
+        Rider Login
         <ChevronDown
           size={14}
           strokeWidth={2.5}
@@ -86,46 +69,50 @@ const RiderDropdown = ({ active }) => {
 
         {/* panel */}
         <div className="bg-gray-800 border border-yellow-400/20 rounded-2xl overflow-hidden shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
-          {/* top glow */}
           <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent" />
 
-          {riderOptions.map((opt, idx) => {
-            const Icon = opt.icon;
-            return (
-              <Link
-                key={idx}
-                to={opt.link}
-                onClick={() => setOpen(false)}
-                className={[
-                  "flex items-center gap-3 px-4 py-3.5 group transition-all duration-200",
-                  "hover:bg-gray-750",
-                  idx < riderOptions.length - 1 ? "border-b border-gray-700/60" : "",
-                ].join(" ")}
-              >
-                {/* icon */}
-                <span className="w-9 h-9 rounded-xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center text-yellow-400 flex-shrink-0 group-hover:bg-yellow-400 group-hover:text-gray-950 transition-all duration-200">
-                  <Icon size={16} strokeWidth={1.8} />
-                </span>
+          <Link
+            to="/rider"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 px-4 py-3.5 group transition-all duration-200 hover:bg-gray-750 border-b border-gray-700/60"
+          >
+            <span className="w-9 h-9 rounded-xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center text-yellow-400 flex-shrink-0 group-hover:bg-yellow-400 group-hover:text-gray-950 transition-all duration-200">
+              <Car size={16} strokeWidth={1.8} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-white text-sm font-bold leading-tight group-hover:text-yellow-400 transition-colors duration-200">
+                Rider Login
+              </span>
+              <span className="text-gray-500 text-[10px] mt-0.5 leading-tight">
+                Drive & earn with CabIndia
+              </span>
+            </span>
+            <span className="ml-auto text-gray-700 group-hover:text-yellow-400 text-xs transition-all duration-200 group-hover:translate-x-0.5">
+              →
+            </span>
+          </Link>
 
-                {/* text */}
-                <span className="flex flex-col">
-                  <span className="text-white text-sm font-bold leading-tight group-hover:text-yellow-400 transition-colors duration-200">
-                    {opt.label}
-                  </span>
-                  <span className="text-gray-500 text-[10px] mt-0.5 leading-tight">
-                    {opt.sub}
-                  </span>
-                </span>
+          <Link
+            to="/register/join-captain-form"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 px-4 py-3.5 group transition-all duration-200 hover:bg-gray-750"
+          >
+            <span className="w-9 h-9 rounded-xl bg-yellow-400/10 border border-yellow-400/20 flex items-center justify-center text-yellow-400 flex-shrink-0 group-hover:bg-yellow-400 group-hover:text-gray-950 transition-all duration-200">
+              <UserCircle size={16} strokeWidth={1.8} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-white text-sm font-bold leading-tight group-hover:text-yellow-400 transition-colors duration-200">
+                Become a Captain
+              </span>
+              <span className="text-gray-500 text-[10px] mt-0.5 leading-tight">
+                Register to drive & earn
+              </span>
+            </span>
+            <span className="ml-auto text-gray-700 group-hover:text-yellow-400 text-xs transition-all duration-200 group-hover:translate-x-0.5">
+              →
+            </span>
+          </Link>
 
-                {/* arrow */}
-                <span className="ml-auto text-gray-700 group-hover:text-yellow-400 text-xs transition-all duration-200 group-hover:translate-x-0.5">
-                  →
-                </span>
-              </Link>
-            );
-          })}
-
-          {/* bottom glow */}
           <div className="h-px bg-gradient-to-r from-transparent via-yellow-400/20 to-transparent" />
         </div>
       </div>
@@ -133,97 +120,211 @@ const RiderDropdown = ({ active }) => {
   );
 };
 
-// ── Nav Item ──
-const NavItem = ({ item, active }) => {
-  if (item.dropdown) return <RiderDropdown active={active} />;
+// ── Auth Button ──
+const AuthButton = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
-  const isExternal =
-    item.link.startsWith("http") || item.link.startsWith("https");
+  if (user) {
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="flex items-center gap-2 bg-yellow-400/10 border border-yellow-400/30 rounded-full px-3 py-1.5 hover:bg-yellow-400/20 transition-all"
+        >
+          <div className="w-8 h-8 rounded-full bg-yellow-400/20 flex items-center justify-center text-yellow-400 font-bold text-sm">
+            {user.name?.charAt(0) || 'U'}
+          </div>
+          <span className="text-white text-sm font-medium hidden sm:block">
+            {user.name?.split(' ')[0] || 'User'}
+          </span>
+          <ChevronDown size={14} className="text-gray-400" />
+        </button>
+
+        {showDropdown && (
+          <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-lg overflow-hidden z-50">
+            <Link
+              to="/dashboard"
+              onClick={() => setShowDropdown(false)}
+              className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/profile"
+              onClick={() => setShowDropdown(false)}
+              className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              Profile
+            </Link>
+            <div className="border-t border-gray-700" />
+            <button
+              onClick={() => {
+                setShowDropdown(false);
+                logout();
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="relative hover:text-yellow-400 transition-colors duration-200">
-      {isExternal ? (
-        <a
-          href={item.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={active === item.name ? "font-bold text-yellow-400" : ""}
-        >
-          {item.name}
-        </a>
-      ) : (
+    <div className="flex items-center gap-2">
+      <Link
+        to="/login"
+        className="px-4 py-2 text-sm font-medium text-white hover:text-yellow-400 transition-colors"
+      >
+        Login
+      </Link>
+      <Link
+        to="/register/customer"
+        className="px-4 py-2 text-sm font-medium bg-yellow-400 text-gray-950 rounded-xl hover:bg-yellow-300 transition-all"
+      >
+        Sign Up
+      </Link>
+    </div>
+  );
+};
+
+// ── Mobile Menu ──
+const MobileMenu = ({ isOpen, toggleMenu }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="md:hidden fixed inset-0 top-16 bg-gray-950 z-40 overflow-y-auto">
+      <div className="flex flex-col p-4 space-y-2">
+        {navItems.map((item) => (
+          <Link
+            key={item.name}
+            to={item.link}
+            onClick={toggleMenu}
+            className="px-4 py-3 text-white hover:bg-gray-800 rounded-xl transition-colors"
+          >
+            {item.name}
+          </Link>
+        ))}
+        <div className="border-t border-gray-800 my-2" />
         <Link
-          to={item.link}
-          className={active === item.name ? "font-bold text-yellow-400" : ""}
+          to="/rider"
+          onClick={toggleMenu}
+          className="px-4 py-3 text-yellow-400 hover:bg-gray-800 rounded-xl transition-colors"
         >
-          {item.name}
+          🚗 Rider Login
         </Link>
-      )}
+        <Link
+          to="/register/join-captain-form"
+          onClick={toggleMenu}
+          className="px-4 py-3 text-yellow-400 hover:bg-gray-800 rounded-xl transition-colors"
+        >
+          👤 Become a Captain
+        </Link>
+        {user ? (
+          <>
+            <Link
+              to="/dashboard"
+              onClick={toggleMenu}
+              className="px-4 py-3 text-white hover:bg-gray-800 rounded-xl transition-colors"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={() => {
+                toggleMenu();
+                // logout logic
+              }}
+              className="px-4 py-3 text-red-400 hover:bg-gray-800 rounded-xl transition-colors text-left"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              to="/login"
+              onClick={toggleMenu}
+              className="px-4 py-3 text-white hover:bg-gray-800 rounded-xl transition-colors"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register/customer"
+              onClick={toggleMenu}
+              className="px-4 py-3 bg-yellow-400 text-gray-950 rounded-xl text-center font-bold hover:bg-yellow-300 transition-colors"
+            >
+              Sign Up
+            </Link>
+          </>
+        )}
+      </div>
     </div>
   );
 };
 
 // ── Header ──
-const Header = ({ width, active }) => {
-  const [isProfileMenu, setIsProfileMenu] = useState(false);
-  const [isOpen, setIsOpen]               = useState(false);
+const Header = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [active, setActive] = useState("");
 
-  const togglePanel  = () => setIsOpen(!isOpen);
-  const toggleProfile = () => setIsProfileMenu(!isProfileMenu);
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   return (
     <>
-      <style>{`
-        .hover\\:bg-gray-750:hover { background-color: #2d3548; }
-      `}</style>
+      <header className="sticky top-0 z-50 bg-gray-900 border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2">
+              <img className="h-10 w-auto" src="/logo.png" alt="CabIndia" />
+              <span className="text-xl font-bold hidden sm:block">
+                <span className="text-white">CAB</span>
+                <span className="text-orange-400">IN</span>
+                <span className="text-white">D</span>
+                <span className="text-green-400">IA</span>
+              </span>
+            </Link>
 
-      <Menu togglePanel={togglePanel} isOpen={isOpen} navItems={navItems} />
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.link}
+                  className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-yellow-400 transition-colors rounded-lg hover:bg-gray-800"
+                >
+                  {item.name}
+                </Link>
+              ))}
+              <RiderDropdown active={active} />
+            </nav>
 
-      <div className={`sticky lg:w-${width} w-full z-20 top-0 bg-gray-900`}>
-        <div className="relative flex w-full h-16 items-center px-3 py-2 justify-center text-white">
-          <div className="relative lg:w-3/5 w-full">
-            <div className="flex w-full items-center">
-
-              {/* Logo */}
-              <Link to="/" className="flex h-16 items-center">
-                <img className="w-10 flex h-16 items-center" src="/logo.png" alt="Logo" />
-                &nbsp;
-                <span className="text-md font-bold flex">
-                  CAB
-                  <p className="text-orange-400">IN</p>
-                  <p>D</p>
-                  <p className="text-green-400">IA</p>
-                </span>
-              </Link>
-
-              {/* Desktop NavItems */}
-              <div className="md:flex justify-between w-96 ml-16 hidden relative z-30 items-center">
-                {navItems.map((item, index) => (
-                  <NavItem
-                    key={index}
-                    item={item}
-                    active={active}
-                  />
-                ))}
-              </div>
+            {/* Desktop Auth */}
+            <div className="hidden md:block">
+              <AuthButton />
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={toggleMenu}
+              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            >
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
-
-          {/* Profile */}
-          <div
-            className="w-[150px] h-16 md:flex hidden justify-center items-center ml-12 cursor-pointer"
-            onClick={toggleProfile}
-          >
-            <div className="h-16 flex items-center justify-center mr-3">
-              UserName
-            </div>
-            <div className="h-12 w-12 flex items-center justify-center rounded-full overflow-hidden bg-slate-200">
-              <img src="/logo.png" alt="User" />
-            </div>
-          </div>
-
         </div>
-      </div>
+      </header>
+
+      {/* Mobile Menu */}
+      <MobileMenu isOpen={isMenuOpen} toggleMenu={toggleMenu} />
     </>
   );
 };
