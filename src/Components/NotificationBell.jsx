@@ -1,4 +1,4 @@
-// src/components/NotificationBell.jsx
+// src/Components/NotificationBell.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, X, Check, CheckCheck } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';

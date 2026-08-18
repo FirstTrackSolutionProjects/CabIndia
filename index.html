@@ -25,10 +25,173 @@
     <link rel="icon" type="image/svg+xml" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     
+    <!-- Google Fonts (Optional - for better typography) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    
     <title>CabIndia - Book Your Ride Now | Safe & Reliable Cab Service</title>
+    
+    <style>
+      /* Critical CSS - loads before main CSS to prevent FOUC */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        background-color: #0a0a0a;
+        color: #ffffff;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading spinner while React loads */
+      .loading-spinner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #0a0a0a;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      
+      .loading-spinner.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .loading-spinner .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(250, 204, 21, 0.1);
+        border-top-color: #facc15;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      
+      .loading-spinner .logo {
+        margin-bottom: 24px;
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+      }
+      
+      .loading-spinner .text {
+        margin-top: 16px;
+        color: #6b7280;
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      
+      .loading-spinner .dots::after {
+        content: '';
+        animation: dots 1.4s steps(4, end) infinite;
+      }
+      
+      @keyframes dots {
+        0% { content: ''; }
+        25% { content: '.'; }
+        50% { content: '..'; }
+        75% { content: '...'; }
+        100% { content: ''; }
+      }
+      
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      ::-webkit-scrollbar-track {
+        background: #1a1a1a;
+      }
+      
+      ::-webkit-scrollbar-thumb {
+        background: #facc15;
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar-thumb:hover {
+        background: #fbbf24;
+      }
+      
+      /* Selection color */
+      ::selection {
+        background: #facc15;
+        color: #0a0a0a;
+      }
+    </style>
   </head>
   <body>
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-spinner">
+      <img src="/logo.png" alt="CabIndia" class="logo" />
+      <div class="spinner"></div>
+      <div class="text">
+        Loading CabIndia<span class="dots"></span>
+      </div>
+    </div>
+
+    <!-- React Root -->
     <div id="root"></div>
+    
+    <!-- Main Application Script -->
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Hide loading spinner once React mounts -->
+    <script>
+      // This will be triggered when React has mounted
+      window.addEventListener('load', function() {
+        // Check if React has mounted after 2 seconds
+        setTimeout(function() {
+          const spinner = document.getElementById('loading-spinner');
+          if (spinner) {
+            spinner.classList.add('hidden');
+          }
+        }, 500);
+      });
+      
+      // Fallback: Hide spinner after 5 seconds even if React fails
+      setTimeout(function() {
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) {
+          spinner.classList.add('hidden');
+        }
+      }, 5000);
+      
+      // Hide spinner when React mounts (called from React)
+      window.hideLoadingSpinner = function() {
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) {
+          spinner.classList.add('hidden');
+        }
+      };
+    </script>
   </body>
 </html>

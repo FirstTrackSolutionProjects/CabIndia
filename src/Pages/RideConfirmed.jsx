@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { Phone, MessageCircle, Navigation, MapPin, Star, Car, Clock, AlertCircle, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import api from '../services/api';
+import RideMap from '../Components/RideMap';
 
 const API_URL = import.meta.env.VITE_APP_API_URL || 'http://localhost:5000';
 
@@ -18,9 +19,66 @@ const RideConfirmed = () => {
   const [eta, setEta] = useState(driver?.eta || 5);
   const [showCancelPopup, setShowCancelPopup] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [routePoints, setRoutePoints] = useState([]);
   const socketRef = useRef(null);
   const timerRef = useRef(null);
 
+  // Fetch route points
+  useEffect(() => {
+    if (pickupLat && pickupLon && dropoffLat && dropoffLon) {
+      const fetchRoute = async () => {
+        try {
+          const response = await fetch(
+            `https://maps.googleapis.com/maps/api/directions/json?origin=${pickupLat},${pickupLon}&destination=${dropoffLat},${dropoffLon}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
+          );
+          const data = await response.json();
+          if (data.routes && data.routes.length > 0) {
+            const points = await decodePolyline(data.routes[0].overview_polyline.points);
+            setRoutePoints(points);
+          }
+        } catch (error) {
+          console.error('Error fetching route:', error);
+        }
+      };
+      fetchRoute();
+    }
+  }, [pickupLat, pickupLon, dropoffLat, dropoffLon]);
+
+  // Helper function to decode polyline
+  const decodePolyline = (encoded) => {
+    const points = [];
+    let index = 0, len = encoded.length;
+    let lat = 0, lng = 0;
+    
+    while (index < len) {
+      let b, shift = 0, result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+      
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+      
+      points.push({
+        lat: lat / 1e5,
+        lng: lng / 1e5,
+      });
+    }
+    return points;
+  };
+
+  // Socket.IO setup
   useEffect(() => {
     if (!rideId) {
       toast.error('No ride found.');
@@ -28,7 +86,6 @@ const RideConfirmed = () => {
       return;
     }
 
-    // Connect to Socket.IO
     const socket = io(API_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -43,8 +100,8 @@ const RideConfirmed = () => {
     socket.on(`location_${rideId}`, (data) => {
       console.log('Driver location update:', data);
       setDriverLocation({
-        latitude: data.latitude,
-        longitude: data.longitude,
+        lat: data.latitude,
+        lng: data.longitude,
       });
       if (data.eta) {
         setEta(data.eta);
@@ -86,7 +143,7 @@ const RideConfirmed = () => {
         clearInterval(timerRef.current);
       }
     };
-  }, [rideId]);
+  }, [rideId, navigate]);
 
   const handleCancelRide = async () => {
     setCancelling(true);
@@ -131,23 +188,9 @@ const RideConfirmed = () => {
     }
   };
 
-  const getStatusColor = () => {
-    switch(rideStatus) {
-      case 'accepted': return 'text-yellow-400';
-      case 'started': return 'text-blue-400';
-      case 'completed': return 'text-green-400';
-      default: return 'text-gray-400';
-    }
-  };
-
-  const getStatusText = () => {
-    switch(rideStatus) {
-      case 'accepted': return 'Captain is coming';
-      case 'started': return 'Ride in progress';
-      case 'completed': return 'Ride completed';
-      default: return 'Unknown status';
-    }
-  };
+  if (!rideId) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pb-24">
@@ -155,13 +198,32 @@ const RideConfirmed = () => {
       <div className="bg-gray-900 border-b border-gray-800 p-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold">Your Ride</h1>
-          <span className={`text-sm font-semibold ${getStatusColor()}`}>
-            {getStatusText()}
+          <span className={`text-sm font-semibold ${
+            rideStatus === 'accepted' ? 'text-yellow-400' :
+            rideStatus === 'started' ? 'text-blue-400' :
+            rideStatus === 'completed' ? 'text-green-400' : 'text-gray-400'
+          }`}>
+            {rideStatus === 'accepted' ? 'Captain is coming' :
+             rideStatus === 'started' ? 'Ride in progress' :
+             rideStatus === 'completed' ? 'Ride completed' : 'Unknown status'}
           </span>
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
+        {/* Map Section */}
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+          <RideMap
+            pickupLat={pickupLat}
+            pickupLon={pickupLon}
+            dropoffLat={dropoffLat}
+            dropoffLon={dropoffLon}
+            driverLocation={driverLocation}
+            routePoints={routePoints}
+            height="h-64 md:h-80"
+          />
+        </div>
+
         {/* Driver Info */}
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
           <div className="flex items-center gap-4">

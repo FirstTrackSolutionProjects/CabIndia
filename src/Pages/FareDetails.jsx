@@ -81,7 +81,7 @@ const FareDetails = () => {
     };
 
     calculateDistance();
-  }, [sourceLat, sourceLon, destLat, destLon]);
+  }, [sourceLat, sourceLon, destLat, destLon, navigate]);
 
   const handleContinue = async () => {
     if (!selectedRide) {

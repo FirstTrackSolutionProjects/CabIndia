@@ -1,5 +1,5 @@
 {
-  "name": "cab5155",
+  "name": "cabindia-web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@react-google-maps/api": "^2.20.7",
+    "@react-google-maps/api": "^2.19.3",
     "@react-oauth/google": "^0.13.5",
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
@@ -27,7 +27,8 @@
     "react-router-dom": "^6.23.1",
     "react-toastify": "^11.1.0",
     "socket.io-client": "^4.8.3",
-    "swiper": "^11.2.10"
+    "swiper": "^11.2.10",
+    "use-places-autocomplete": "^4.0.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
